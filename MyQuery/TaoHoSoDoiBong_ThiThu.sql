@@ -39,18 +39,18 @@ DELETE TABLE ThamSo
 	GiaTri INT,
 	DonVi NVARCHAR(10)
 )
---them du lieu tham so
+--THÊM DỮ LIỆU THAM SỐ
 INSERT INTO	ThamSo VALUES (1, N'Số cầu thủ đội', 3, N'Người')
---them du lieu loai
+--THÊM DỮ LIỆU LOẠI CẦU THỦ
 INSERT INTO	LoaiCauThu VALUES ('1', N'Trong nước')
 INSERT INTO	LoaiCauThu VALUES ('2', N'Ngoài nước')
---them du lieu doi
+--THÊM DỮ LIỆU ĐỘI BÓNG
 INSERT INTO	DoiBong VALUES ('A1', N'Becamex Bình Dương', 'Đồi Núi')
 INSERT INTO	DoiBong VALUES ('A2', N'Đồng Nai', 'Đồng Bằng')
 INSERT INTO	DoiBong VALUES ('A3', N'Bến Tre', 'Đồi Núi')
 INSERT INTO	DoiBong VALUES ('A4', N'Cà Mau', 'Đồng Bằng')
 INSERT INTO	DoiBong VALUES ('A5', N'Hà Nội T&T', 'Đồi Núi')
---them du lieu cau thu
+--THÊM DỮ LIỆU CẦU THỦ
 INSERT INTO	CauThu VALUES ('1001', N'Dương Quá', '1995/12/1', N'Ngoài Nước', 'Tiền Đạo Cấm', 'A1', '2') 
 INSERT INTO	CauThu VALUES ('1002', N'Cô Long', '1995/11/1', N'Ngoài Nước', 'Đội Phó', 'A2', '2') 
 INSERT INTO	CauThu VALUES ('1003', N'RobinSon', '1995/10/1', N'Ngoài Nước', 'Đội Trưởng', 'A3', '2') 
@@ -61,14 +61,14 @@ INSERT INTO	CauThu VALUES ('1007', N'Ngô Bảo Châu', '1995/06/1', N'Trong Nư
 INSERT INTO	CauThu VALUES ('1008', N'Daivd Duong', '1995/05/1', N'Ngoài Nước', 'Đội Trưởng', 'A2', '2') 
 INSERT INTO	CauThu VALUES ('1009', N'Nguyễn Tuấn', '1995/04/1', N'Trong Nước', 'Đội Trưởng', 'A3', '1') 
 INSERT INTO	CauThu VALUES ('1010', N'Ngô Thì Nhậm', '1995/03/1', N'Trong Nước', 'Đội Trưởng', 'A5', '1') 
---
 
---test
+
+--TEST
 SELECT dbo.CauThu.TenCauThu, dbo.CauThu.GhiChu FROM dbo.CauThu
 LEFT JOIN	dbo.DoiBong ON dbo.CauThu.MaDoi = dbo.DoiBong.MaDoiBong
 AND dbo.DoiBong.SanNha = 'Đồi Núi'
 
-
+--PROC
 CREATE PROC CauThuInsert
 (
 	----Tham so nhap cau thu
