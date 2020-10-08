@@ -1,0 +1,85 @@
+﻿CREATE TABLE DangNhap
+(
+	ID VARCHAR(20) PRIMARY KEY,
+	Pass VARCHAR(50),
+	Quyen INT	
+)
+GO	
+
+CREATE TABLE MonHoc
+(
+	MaMon VARCHAR(20) PRIMARY KEY,
+	TenMon NVARCHAR(50),
+	TongTiet INT,
+	SoTin INT
+)
+GO	
+
+CREATE TABLE GiaoVien
+(
+	MaGV VARCHAR(20) PRIMARY KEY,
+	TenGV NVARCHAR(50),
+	DiaChi NVARCHAR(50),
+	NgaySinh DATETIME,
+	GT	BIT
+	MaMon VARCHAR(20) NOT NULL,
+	ChuyenNganh NVARCHAR(50)
+
+	FOREIGN KEY (MaMon) REFERENCES dbo.MonHoc(MaMon)
+)
+GO	
+
+
+CREATE TABLE Lop
+(
+	MaLop VARCHAR(20) PRIMARY KEY,
+	TenLop NVARCHAR(50),
+	SiSo float,
+	MaKhoa VARCHAR(20) NOT NULL
+
+	FOREIGN KEY (MaKhoa) REFERENCES dbo.Khoa(MaKhoa)
+)
+GO
+
+CREATE TABLE PhongHoc
+(
+	MaPhong VARCHAR(20) PRIMARY KEY,
+	TenPhong NVARCHAR(50),
+	ChucNang NVARCHAR(20)
+)
+GO	
+
+CREATE TABLE TKB
+(
+	Ngay DATETIME,
+	MaGV VARCHAR(20) NOT NULL,
+	MaLop VARCHAR(20) NOT NULL,
+	MaMon VARCHAR(20) NOT NULL,
+	MaPhong VARCHAR(20) NOT NULL,
+	Buoi VARCHAR(10)
+	
+	PRIMARY KEY(MaGV, MaLop, MaMon, MaPhong),
+	FOREIGN KEY(MaGV) REFERENCES dbo.GiaoVien(MaGV),
+	FOREIGN KEY(MaLop) REFERENCES dbo.Lop(MaLop),
+	FOREIGN KEY(MaMon) REFERENCES dbo.MonHoc(MaMon),
+	FOREIGN KEY(MaPhong) REFERENCES dbo.PhongHoc(MaPhong)
+)
+
+CREATE TABLE Khoa
+(
+	MaKhoa VARCHAR(20) PRIMARY KEY,
+	TenKhoa NVARCHAR(50),
+	DienThoai NVARCHAR(20),
+	Email NVARCHAR(50)
+)
+GO	
+--THÊM DỮ LIỆU KHOA
+INSERT INTO Khoa VALUES ('001', N'Kỹ thuật công nghệ', '090111111', 'a001@gmail.com')
+INSERT INTO Khoa VALUES ('002', N'Kỹ thuật công nghệ', '090111222', 'a002@gmail.com')
+INSERT INTO Khoa VALUES ('003', N'Kỹ thuật công nghệ', '090111333', 'a003@gmail.com')
+INSERT INTO Khoa VALUES ('004', N'Kỹ thuật công nghệ', '090111444', 'a004@gmail.com')
+INSERT INTO Khoa VALUES ('005', N'Quản trị', '090111555', 'a005@gmail.com')
+
+
+
+

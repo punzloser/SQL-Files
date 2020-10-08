@@ -1,0 +1,31 @@
+﻿CREATE DATABASE TaoManHinhNhapGiaoVien
+GO	
+USE TaoManHinhNhapGiaoVien
+
+CREATE TABLE Khoa
+(
+	MaKhoa SMALLINT PRIMARY KEY ,
+	TenKhoa NVARCHAR(100)
+)
+GO	
+
+CREATE TABLE GiaoVien
+(
+	MaGiaoVien int IDENTITY(1,1) PRIMARY KEY,
+	TenGiaoVien NVARCHAR(100),
+	SoDienThoai NVARCHAR(100),
+	Luong FLOAT,
+	MaKhoa SMALLINT NOT NULL
+
+	FOREIGN KEY (MaKhoa) REFERENCES dbo.Khoa(MaKhoa)
+)
+GO	
+--
+INSERT	INTO Khoa VALUES ('001', N'Quản Trị 1')
+INSERT	INTO Khoa VALUES ('002', N'Quản Trị 2')
+INSERT	INTO Khoa VALUES ('003', N'Quản Trị 3')
+--
+INSERT INTO	GiaoVien VALUES (N'Nguyễn Văn A', '090000', '1000', '001')
+INSERT INTO	GiaoVien VALUES (N'Nguyễn Thị B', '090111', '2000', '002')
+INSERT INTO	GiaoVien VALUES (N'Nguyễn Văn C', '090222', '3000', '003')
+
