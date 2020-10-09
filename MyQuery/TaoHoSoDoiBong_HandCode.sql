@@ -22,6 +22,7 @@ CREATE TABLE CauThu
 	MaDoi VARCHAR(10) NOT NULL,
 
 	FOREIGN KEY (MaDoi) REFERENCES dbo.DoiBong(MaDoi)
+	
 )
 
 CREATE TABLE ThamSo
@@ -107,11 +108,11 @@ END
 
 CREATE PROC ChonCauThuTheoDoi
 (
-	@MaCauThu VARCHAR(10) 
+	@MaDoi VARCHAR(10) 
 )
 AS
 BEGIN
 	SELECT *
 	FROM dbo.CauThu
-	WHERE MaCauThu = @MaCauThu
+	WHERE MaDoi = @MaDoi
 END
