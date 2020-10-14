@@ -25,6 +25,8 @@ CREATE TABLE MonHoc
 (
 	MaMon VARCHAR(20) PRIMARY KEY,
 	TenMon NVARCHAR(50),
+	TongTiet INT,
+	SoTin INT 
 )
 GO	
 
@@ -84,12 +86,12 @@ INSERT INTO DangNhap VALUES ('admin', 'admin', NULL)
 INSERT INTO Khoa VALUES ('K1', N'Kỹ thuật', '090111111', 'a001@gmail.com')
 INSERT INTO Khoa VALUES ('K2', N'Quản trị', '090111222', 'a002@gmail.com')
 --THÊM DỮ LIỆU MÔN HỌC
-INSERT INTO MonHoc VALUES ('M1', N'Toán cao cấp')
-INSERT INTO MonHoc VALUES ('M2', N'Kiến trúc máy tính')
-INSERT INTO MonHoc VALUES ('M3', N'Kỹ thuật lập trình')
-INSERT INTO MonHoc VALUES ('M4', N'Nguyên lý kế toán')
-INSERT INTO MonHoc VALUES ('M5', N'Quản trị Marketing')
-INSERT INTO MonHoc VALUES ('M6', N'Quản trị nguồn nhân lực')
+INSERT INTO MonHoc VALUES ('M1', N'Toán cao cấp', 45, 3)
+INSERT INTO MonHoc VALUES ('M2', N'Kiến trúc máy tính', 30, 2)
+INSERT INTO MonHoc VALUES ('M3', N'Kỹ thuật lập trình', 60, 4)
+INSERT INTO MonHoc VALUES ('M4', N'Nguyên lý kế toán', 45, 3)
+INSERT INTO MonHoc VALUES ('M5', N'Quản trị Marketing', 45, 3)
+INSERT INTO MonHoc VALUES ('M6', N'Quản trị nguồn nhân lực', 60, 3)
 --THÊM DỮ LIỆU GIÁO VIÊN
 INSERT INTO GiaoVien VALUES ('G1', N'Phạm Quốc Phong', N'Bình Dương', '1980-12-1', N'Nam', 'M4', N'Kinh tế')
 INSERT INTO GiaoVien VALUES ('G2', N'Nguyễn Thị Mai Chi', N'Long Bình Tân', '1981-11-1', N'Nữ', 'M5', N'Kinh tế')
@@ -108,7 +110,7 @@ INSERT INTO TKB VALUES ('2020-12-10', 'G1', 'L2', 'M4', 'P2', N'Sáng')
 INSERT INTO TKB VALUES ('2020-12-10', 'G4', 'L1', 'M2', 'P1', N'Chiều')
 
 --PROC KHOA
-ALTER PROC ThemKhoa
+CREATE PROC ThemKhoa
 @MaKhoa VARCHAR(20),
 @TenKhoa NVARCHAR(50),
 @DienThoai VARCHAR(20),
@@ -133,7 +135,7 @@ BEGIN
 		SELECT ErrMsg = N'Thêm thành công !'
 END
 
-ALTER PROC SuaKhoa
+CREATE PROC SuaKhoa
 @MaKhoa VARCHAR(20),
 @TenKhoa NVARCHAR(50),
 @DienThoai VARCHAR(20),
@@ -171,7 +173,7 @@ BEGIN
 		SELECT ErrMsg = N'Sửa thành công !'
 END
 
-ALTER PROC XoaKhoa
+CREATE PROC XoaKhoa
 @MaKhoa VARCHAR(20)
 AS	
 BEGIN
@@ -198,7 +200,7 @@ BEGIN
 END
 
 --PROC LOP
-ALTER PROC ThemLop
+CREATE PROC ThemLop
 @MaLop VARCHAR(20),
 @TenLop NVARCHAR(50),
 @SiSo VARCHAR(5),
@@ -225,23 +227,6 @@ BEGIN
 				SELECT ErrMsg = N' Lớp chưa có Khoa này !'
 				RETURN 0
 			END
-
-		--DECLARE @Check NVARCHAR(15)
-		--SET @Check = CAST(@SiSo AS NVARCHAR)
-
-		--IF EXISTS (SELECT Lop.SiSo
-		--			FROM dbo.Lop
-		--			WHERE MaLop  = @MaLop
-		--			AND   TenLop = @TenLop
-		--			AND		SiSo = @Check
-		--			AND		@Check LIKE '[^A-Z]%'
-		--			OR		@Check LIKE '[^a-z]%'
-		--			AND	  MaKhoa = @MaKhoa)
-
-		--	BEGIN
-		--		SELECT ErrMsg = N' Sỉ Số Kiểu INT!'
-		--		RETURN 0
-		--	END
 	ELSE	
 		INSERT dbo.Lop
 		VALUES (@MaLop, @TenLop, @SiSo, @MaKhoa)
@@ -250,7 +235,7 @@ END
 ThemLop 'a', 'f', 'f', 'f'
 
 
-ALTER PROC SuaLop
+CREATE PROC SuaLop
 @MaLop VARCHAR(20),
 @TenLop NVARCHAR(50),
 @SiSo VARCHAR(5),
@@ -296,7 +281,7 @@ BEGIN
 			SELECT ErrMsg = N'Sửa thành công !'
 END
 
-ALTER PROC XoaLop
+CREATE PROC XoaLop
 @MaLop VARCHAR(20)
 AS
 BEGIN
@@ -308,7 +293,7 @@ XoaLop 'a', 'a', 'a', 'K2'
 
 --PROC GiaoVien
 
-ALTER PROC ThemGiaoVien
+CREATE PROC ThemGiaoVien
 @MaGV VARCHAR(20),
 @TenGV NVARCHAR(50),
 @DiaChi NVARCHAR(50),
@@ -338,7 +323,7 @@ BEGIN
 END
 ThemGiaoVien '47', '1', '1', '1999-11-11', N'Nam', 'Mf99', '17'
 
-ALTER PROC SuaGiaoVien
+CREATE PROC SuaGiaoVien
 @MaGV VARCHAR(20),
 @TenGV NVARCHAR(50),
 @DiaChi NVARCHAR(50),
@@ -357,4 +342,103 @@ BEGIN
      ChuyenNganh = @ChuyenNganh		
 	 WHERE MaGV = @MaGV
 	 SELECT ErrMsg = N'Sửa thành công !'
+END
+
+CREATE PROC XoaGiaoVien
+@MaGV VARCHAR(20)
+AS	
+BEGIN
+	DECLARE @MaMon VARCHAR(20)
+
+	IF EXISTS(SELECT dbo.GiaoVien.MaGV 
+				FROM dbo.GiaoVien
+				LEFT JOIN dbo.MonHoc ON MonHoc.MaMon = GiaoVien.MaMon
+				AND dbo.GiaoVien.MaGV = @MaGV)
+			BEGIN
+				SELECT ErrMsg = N'Lỗi !'
+				RETURN 0
+			END 
+	DELETE FROM dbo.GiaoVien
+	WHERE MaGV = @MaGV
+	AND dbo.GiaoVien.GT != 'Nam'
+	AND dbo.GiaoVien.GT != 'Nữ'
+	SELECT ErrMsg = N'Xóa thành công !'
+END
+--PROC PhongHoc
+CREATE PROC ThemPhong
+@MaPhong VARCHAR(20),
+@TenPhong NVARCHAR(50),
+@ChucNang NVARCHAR(20),
+@SucChua INT
+AS	
+BEGIN
+	IF @MaPhong = ''
+	 BEGIN
+	 	SELECT ErrMsg = N'Lỗi !'
+		RETURN 0
+	 END
+	ELSE
+		INSERT INTO	 PhongHoc VALUES (@MaPhong, @TenPhong, @ChucNang, @SucChua)
+		SELECT ErrMsg = N'Thêm thành công !'
+END
+
+CREATE PROC SuaPhong
+@MaPhong VARCHAR(20),
+@TenPhong NVARCHAR(50),
+@ChucNang NVARCHAR(20),
+@SucChua INT
+AS
+BEGIN
+	UPDATE dbo.PhongHoc
+	SET TenPhong = @TenPhong,
+		ChucNang = @ChucNang,
+		 SucChua = @SucChua		
+	WHERE MaPhong = @MaPhong
+	SELECT ErrMsg = N'Sửa thành công !'
+END
+
+CREATE PROC XoaPhong
+@MaPhong VARCHAR(20)
+AS	
+BEGIN
+	DELETE FROM dbo.PhongHoc
+	WHERE MaPhong = @MaPhong
+	SELECT ErrMsg = N'Xóa thành công !'
+END
+
+--PROC MonHoc
+
+CREATE PROC ThemMon
+@MaMon VARCHAR(20),
+@TenMon NVARCHAR(50),
+@TongTiet INT,
+@SoTin INT 
+AS
+BEGIN
+	INSERT INTO MonHoc VALUES(@MaMon, @TenMon, @TongTiet, @SoTin)
+	SELECT ErrMsg = N'Thêm thành công !'
+END
+
+CREATE PROC SuaMon
+@MaMon VARCHAR(20),
+@TenMon NVARCHAR(50),
+@TongTiet INT,
+@SoTin INT 
+AS
+BEGIN
+	UPDATE dbo.MonHoc
+	SET	TenMon   = @TenMon,
+		TongTiet = @TongTiet,
+		SoTin    = @SoTin
+	WHERE MaMon	 = @MaMon
+	SELECT ErrMsg = N'Sửa thành công !'
+END
+
+CREATE PROC XoaMon
+@MaMon VARCHAR(20)
+AS
+BEGIN
+	DELETE FROM dbo.MonHoc
+	WHERE MaMon = @MaMon
+	SELECT ErrMsg = N'Xóa thành công !'
 END
