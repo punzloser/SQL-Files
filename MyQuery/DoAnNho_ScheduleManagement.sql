@@ -442,3 +442,40 @@ BEGIN
 	WHERE MaMon = @MaMon
 	SELECT ErrMsg = N'Xóa thành công !'
 END
+--PROC TKB
+ALTER PROC ChonTenTheoMa
+@TenGV NVARCHAR(50)
+AS	
+BEGIN
+	SELECT dbo.TKB.MaGV
+	FROM	dbo.TKB, dbo.GiaoVien
+	WHERE TenGV = @TenGV
+END
+ChonTenTheoMa N'Phạm Mạnh Cương'
+
+CREATE PROC ChonLopTheoMaLop
+@MaLop VARCHAR(20)
+AS	
+BEGIN
+	SELECT Lop.TenLop
+	FROM dbo.Lop
+	WHERE MaLop = @MaLop
+END
+
+CREATE PROC ChonMonTheoMaMon
+@MaMon VARCHAR(20)
+AS
+BEGIN
+	SELECT dbo.MonHoc.TenMon
+	FROM dbo.MonHoc
+	WHERE MaMon = @MaMon
+END
+
+CREATE PROC ChonPhongTheoMaPhong
+@MaPhong VARCHAR(20)
+AS
+BEGIN
+	SELECT dbo.PhongHoc.TenPhong
+	FROM dbo.PhongHoc
+	WHERE MaPhong = @MaPhong
+END
