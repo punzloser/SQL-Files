@@ -1,0 +1,77 @@
+﻿CREATE DATABASE banhang
+USE	banhang
+GO	
+
+CREATE TABLE LoaiSP
+(
+	MaLoaiSP SMALLINT PRIMARY KEY,
+	TenLoaiSP NVARCHAR(100)
+)
+GO
+
+CREATE TABLE SanPham
+(
+	MaSP BIGINT IDENTITY(1,1) PRIMARY KEY,
+	TenSP NVARCHAR(100) NOT NULL,
+	DonGia FLOAT,
+	SoTon INT,
+	MaLoaiSP SMALLINT NOT NULL
+
+	FOREIGN KEY(MaLoaiSP) REFERENCES dbo.LoaiSP(MaLoaiSP)
+)
+GO
+
+CREATE PROC ChonSPTheoLoai
+@MaLoaiSP SMALLINT
+AS
+BEGIN
+	SELECT *
+	FROM dbo.SanPham
+	WHERE MaLoaiSP = @MaLoaiSP
+END
+
+CREATE PROC ChonSPTheoMaSP
+@MaSP BIGINT
+AS
+BEGIN
+	SELECT *
+	FROM dbo.SanPham
+	WHERE MaSP = @MaSP
+END
+
+CREATE PROC SuaSP
+@MaSP BIGINT,
+@TenSP NVARCHAR,
+@DonGia FLOAT,
+@SoTon INT,
+@MaLoaiSP SMALLINT
+AS
+BEGIN
+	UPDATE dbo.SanPham
+	SET TenSP = @TenSP,
+		DonGia = @DonGia,
+		SoTon = @SoTon,
+		MaLoaiSP = @MaLoaiSP
+	WHERE MaSP = @MaSP
+	SELECT ErrMsg = N'Sửa thành công !'
+END
+
+CREATE PROC ThemSP
+@TenSP NVARCHAR,
+@DonGia FLOAT,
+@SoTon INT,
+@MaLoaiSP SMALLINT
+AS	
+BEGIN
+	INSERT SanPham(TenSP, DonGia, SoTon, MaLoaiSP) VALUES (@TenSP, @DonGia, @SoTon, @MaLoaiSP)
+	SELECT ErrMsg = N'Thêm thành công !'
+END
+
+CREATE PROC XoaSP
+@MaSP BIGINT
+AS
+BEGIN
+	DELETE FROM dbo.SanPham
+	WHERE MaSP = @MaSP
+	SELECT ErrMsg = N'Xóa thành công !'
+END
