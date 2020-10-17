@@ -411,6 +411,7 @@ BEGIN
 	FROM dbo.TKB
 	WHERE MaGV = @MaGV
 END
+ChonTKBTheoMaGV 'G2'
 
 ALTER PROC XemTKB
 @NgayBatDau DATETIME,
@@ -461,16 +462,15 @@ BEGIN
 			BEGIN
 				SELECT ErrMsg = N'Ngày không hợp lệ !'
 				RETURN 0	
-			END
-		ELSE	
+			END	
 		UPDATE dbo.TKB
 		SET Ngay = @Ngay,
 			Buoi = @Buoi
-		WHERE	MaGV = @MaGV
-		AND 	MaPhong = @MaPhong
+		WHERE MaGV = @MaGV
 		AND 	MaLop = @MaLop
-		AND 	MaMon = @MaMon
-		AND @Ngay > GETDATE()
+		AND		MaMon = @MaMon
+		AND		MaPhong = @MaPhong
+		AND		@Ngay > GETDATE()
 	SELECT ErrMsg = N'Sửa thành công !'			
 	END TRY
     BEGIN CATCH
