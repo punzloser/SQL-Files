@@ -44,7 +44,6 @@ CREATE TABLE GiaoVien
 )
 GO	
 
-
 CREATE TABLE Lop
 (
 	MaLop VARCHAR(20) PRIMARY KEY,
@@ -110,190 +109,117 @@ INSERT INTO TKB VALUES ('2020-12-10', 'G1', 'L2', 'M4', 'P2', N'Sáng')
 INSERT INTO TKB VALUES ('2020-12-10', 'G4', 'L1', 'M2', 'P1', N'Chiều')
 
 --PROC KHOA
-CREATE PROC ThemKhoa
+ALTER PROC ThemKhoa
 @MaKhoa VARCHAR(20),
 @TenKhoa NVARCHAR(50),
 @DienThoai VARCHAR(20),
 @Email NVARCHAR(50)
 AS
 BEGIN
-	IF EXISTS (SELECT dbo.Khoa.MaKhoa
-				FROM dbo.Khoa
-				WHERE MaKhoa = @MaKhoa)
-			BEGIN
-				SELECT ErrMsg = N'Trùng mã khoa ! Nhập lại'
-				RETURN 0
-			END
-	IF	@MaKhoa = ''
-			BEGIN
-				SELECT ErrMsg = N' Mã Khoa trống !'
-				RETURN 0
-			END
-	ELSE	
+	BEGIN TRY 
+
 		INSERT dbo.Khoa
 		VALUES (@MaKhoa, @TenKhoa, @DienThoai, @Email)
 		SELECT ErrMsg = N'Thêm thành công !'
+
+	END TRY
+	BEGIN CATCH
+		SELECT ErrMsg = N'Thêm thất bại !' + CONVERT(NVARCHAR(5), ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+	END CATCH
 END
 
-CREATE PROC SuaKhoa
+ALTER PROC SuaKhoa
 @MaKhoa VARCHAR(20),
 @TenKhoa NVARCHAR(50),
 @DienThoai VARCHAR(20),
 @Email NVARCHAR(50)
 AS
 BEGIN
-	IF	@MaKhoa = ''
-		BEGIN
-			SELECT ErrMsg = N'Mã Khoa là Khóa chính !'
-			RETURN 0
-		END
-	IF	@TenKhoa	= '' OR
-		@DienThoai  = '' OR
-		@Email	    = ''
-		BEGIN
-			SELECT ErrMsg = N'Sửa lại không được trống !'
-			RETURN 0
-		END
-	IF EXISTS(SELECT khoa.MaKhoa
-			  FROM dbo.Khoa	
-			  WHERE Khoa.MaKhoa = @MaKhoa
-			  AND TenKhoa       = @TenKhoa
-			  AND DienThoai     = @DienThoai
-			  AND Email         = @Email)
-		BEGIN
-			SELECT ErrMsg = N'Dữ liệu không thay đổi!'
-			RETURN 0
-		END
-	ELSE 
+	BEGIN TRY 
 		UPDATE dbo.Khoa
 		SET TenKhoa   = @TenKhoa,
 			DienThoai = @DienThoai,
 			Email     = @Email
 		WHERE MaKhoa = @MaKhoa
 		SELECT ErrMsg = N'Sửa thành công !'
+	END TRY
+	BEGIN CATCH
+		SELECT ErrMsg = N'Sửa Thất bại !' + CONVERT(NVARCHAR(5),ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+	END CATCH
 END
 
-CREATE PROC XoaKhoa
+ALTER PROC XoaKhoa
 @MaKhoa VARCHAR(20)
 AS	
 BEGIN
-	
-	IF @MaKhoa = ''
-		BEGIN
-			SELECT ErrMsg = N'Lỗi !'
-			RETURN 0
-		END
-	IF EXISTS
-			(SELECT  dbo.Lop.MaKhoa
-			 FROM    dbo.Lop
-			 WHERE	 Lop.MaKhoa = @MaKhoa)
-		BEGIN
-		SELECT ErrMsg = N'Mã khoa đang tham chiếu !'
-		RETURN 0
-		END
-	ELSE	
-		BEGIN
-			DELETE FROM dbo.Khoa
-			WHERE MaKhoa = @MaKhoa
-			SELECT ErrMsg = N'Xóa thành công !'
-		END
+	BEGIN TRY 
+		DELETE FROM dbo.Khoa
+		WHERE MaKhoa = @MaKhoa
+		SELECT ErrMsg = N'Xóa thành công !'
+	END TRY
+	BEGIN CATCH
+		SELECT ErrMsg = N'Xóa thất bại !' + CONVERT(NVARCHAR(5),ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+	END CATCH
 END
 
 --PROC LOP
-CREATE PROC ThemLop
+ALTER PROC ThemLop
 @MaLop VARCHAR(20),
 @TenLop NVARCHAR(50),
 @SiSo VARCHAR(5),
 @MaKhoa VARCHAR(20)
 AS
 BEGIN
-	IF EXISTS (SELECT dbo.Lop.MaLop
-				FROM dbo.Lop
-				WHERE MaLop = @MaLop)
-			BEGIN
-				SELECT ErrMsg = N'Trùng mã lớp ! Nhập lại'
-				RETURN 0
-			END
-	IF	@MaLop = ''
-			BEGIN
-				SELECT ErrMsg = N' Mã Lớp trống !'
-				RETURN 0
-			END
-	IF NOT EXISTS (SELECT Lop.MaKhoa
-					FROM dbo.Khoa, dbo.Lop
-					WHERE Khoa.MaKhoa = @MaKhoa
-					AND Lop.MaKhoa = @MaKhoa)
-			BEGIN
-				SELECT ErrMsg = N' Lớp chưa có Khoa này !'
-				RETURN 0
-			END
-	ELSE	
+	BEGIN TRY
 		INSERT dbo.Lop
 		VALUES (@MaLop, @TenLop, @SiSo, @MaKhoa)
 		SELECT ErrMsg = N'Thêm thành công !'
+	END TRY
+	BEGIN CATCH
+		SELECT ErrMsg = N'Thêm thất bại !' + CONVERT(NVARCHAR(5),ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+	END CATCH
 END
-ThemLop 'a', 'f', 'f', 'f'
 
-
-CREATE PROC SuaLop
+ALTER PROC SuaLop
 @MaLop VARCHAR(20),
 @TenLop NVARCHAR(50),
 @SiSo VARCHAR(5),
 @MaKhoa VARCHAR(20)
 AS 
 BEGIN
-	IF	@MaLop = '' 
-		BEGIN
-			SELECT ErrMsg = N'Mã Lớp là Khóa chính !'
-			RETURN 0
-		END
-	IF	@TenLop   = '' OR
-		@SiSo     = '' OR
-		@MaKhoa	  = ''
-		BEGIN
-			SELECT ErrMsg = N'Sửa lại không được trống !'
-			RETURN 0
-		END
-	IF EXISTS(SELECT *
-			  FROM dbo.Lop	
-			  WHERE Lop.MaLop  = @MaLop
-				AND	TenLop     = @TenLop 
-				AND	SiSo       = @SiSo
-				AND	MaKhoa	   = @MaKhoa)
-		BEGIN
-			SELECT ErrMsg = N'Dữ liệu không thay đổi!'
-			RETURN 0
-		END
-	IF NOT EXISTS (SELECT Lop.MaKhoa
-					FROM dbo.Khoa, dbo.Lop
-					WHERE Khoa.MaKhoa = @MaKhoa
-					AND Lop.MaKhoa = @MaKhoa)
-			BEGIN
-				SELECT ErrMsg = N' Lớp chưa có Khoa này !'
-				RETURN 0
-			END
-	ELSE 
-			UPDATE dbo.Lop
-			SET TenLop  = @TenLop,
-				SiSo    = @SiSo,
-				MaKhoa  = @MaKhoa
-			WHERE MaLop = @MaLop
-			SELECT ErrMsg = N'Sửa thành công !'
+	BEGIN TRY	
+		UPDATE dbo.Lop
+		SET TenLop  = @TenLop,
+			SiSo    = @SiSo,
+			MaKhoa  = @MaKhoa
+		WHERE MaLop = @MaLop
+		SELECT ErrMsg = N'Sửa thành công !'
+	END TRY
+
+	BEGIN CATCH
+		SELECT ErrMsg = N'Sửa thất bại !' + CONVERT(NVARCHAR(5),ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+	END CATCH
 END
 
-CREATE PROC XoaLop
+ALTER PROC XoaLop
 @MaLop VARCHAR(20)
 AS
 BEGIN
+	
+	BEGIN TRY 
 	DELETE FROM dbo.Lop
-	WHERE Lop.MaLop = @MaLop
+	WHERE MaLop = @MaLop 
 	SELECT ErrMsg = N'Xóa thành công !'
+	END TRY 
+
+	BEGIN CATCH
+		SELECT ErrMsg = N'Xóa thất bại !' + CONVERT(NVARCHAR(5),ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+	END CATCH
 END
-XoaLop 'a', 'a', 'a', 'K2'
 
 --PROC GiaoVien
 
-CREATE PROC ThemGiaoVien
+ALTER PROC ThemGiaoVien
 @MaGV VARCHAR(20),
 @TenGV NVARCHAR(50),
 @DiaChi NVARCHAR(50),
@@ -303,27 +229,17 @@ CREATE PROC ThemGiaoVien
 @ChuyenNganh NVARCHAR(50)
 AS	
 BEGIN
-	IF NOT EXISTS (SELECT dbo.GiaoVien.MaMon 
-					 FROM dbo.GiaoVien, dbo.MonHoc
-					WHERE dbo.GiaoVien.MaMon = dbo.MonHoc.MaMon
-					 AND  dbo.GiaoVien.MaMon = @MaMon)
-			BEGIN
-				SELECT ErrMsg = N'Mã môn chưa có trong Môn học'
-				RETURN 0
-			END
-	IF EXISTS (SELECT dbo.GiaoVien.MaGV
-				FROM dbo.GiaoVien
-				WHERE MaGV = @MaGV)
-			BEGIN
-				SELECT ErrMsg = N'Trùng mã GV ! Nhập lại'
-				RETURN 0
-			END
+	BEGIN TRY 
 	INSERT INTO GiaoVien VALUES(@MaGV, @TenGV, @DiaChi, @NgaySinh, @GT, @MaMon, @ChuyenNganh)
 	SELECT ErrMsg = N'Thêm thành công !'
-END
-ThemGiaoVien '47', '1', '1', '1999-11-11', N'Nam', 'Mf99', '17'
+	END TRY
 
-CREATE PROC SuaGiaoVien
+	BEGIN CATCH
+	SELECT ErrMsg = N'Thêm thất bại !' + CONVERT(NVARCHAR(5),ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+	END CATCH
+END
+
+ALTER PROC SuaGiaoVien
 @MaGV VARCHAR(20),
 @TenGV NVARCHAR(50),
 @DiaChi NVARCHAR(50),
@@ -333,6 +249,7 @@ CREATE PROC SuaGiaoVien
 @ChuyenNganh NVARCHAR(50)
 AS	
 BEGIN
+	BEGIN TRY 
 	UPDATE  dbo.GiaoVien
 	SET TenGV	 = @TenGV,
 		DiaChi	 = @DiaChi,
@@ -342,12 +259,19 @@ BEGIN
      ChuyenNganh = @ChuyenNganh		
 	 WHERE MaGV = @MaGV
 	 SELECT ErrMsg = N'Sửa thành công !'
+	 END TRY 
+
+	 BEGIN CATCH
+	 SELECT ErrMsg = N'Sửa thất bại !' + CONVERT(NVARCHAR(5),ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+	 END CATCH
 END
 
-CREATE PROC XoaGiaoVien
+ALTER PROC XoaGiaoVien
 @MaGV VARCHAR(20)
 AS	
 BEGIN
+	BEGIN TRY 
+
 	DECLARE @MaMon VARCHAR(20)
 
 	IF EXISTS(SELECT dbo.GiaoVien.MaGV 
@@ -358,124 +282,237 @@ BEGIN
 				SELECT ErrMsg = N'Lỗi !'
 				RETURN 0
 			END 
+	ELSE	
 	DELETE FROM dbo.GiaoVien
 	WHERE MaGV = @MaGV
 	AND dbo.GiaoVien.GT != 'Nam'
 	AND dbo.GiaoVien.GT != 'Nữ'
 	SELECT ErrMsg = N'Xóa thành công !'
+	END TRY 
+
+	BEGIN CATCH
+	SELECT ErrMsg = N'Xóa thất bại !' + CONVERT(NVARCHAR(5),ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+	END CATCH
 END
 --PROC PhongHoc
-CREATE PROC ThemPhong
-@MaPhong VARCHAR(20),
-@TenPhong NVARCHAR(50),
-@ChucNang NVARCHAR(20),
-@SucChua INT
-AS	
-BEGIN
-	IF @MaPhong = ''
-	 BEGIN
-	 	SELECT ErrMsg = N'Lỗi !'
-		RETURN 0
-	 END
-	ELSE
-		INSERT INTO	 PhongHoc VALUES (@MaPhong, @TenPhong, @ChucNang, @SucChua)
-		SELECT ErrMsg = N'Thêm thành công !'
-END
-
-CREATE PROC SuaPhong
+ALTER PROC ThemPhong
 @MaPhong VARCHAR(20),
 @TenPhong NVARCHAR(50),
 @ChucNang NVARCHAR(20),
 @SucChua INT
 AS
 BEGIN
+	BEGIN TRY 
+	INSERT INTO	 PhongHoc VALUES (@MaPhong, @TenPhong, @ChucNang, @SucChua)
+	SELECT ErrMsg = N'Thêm thành công !'
+	END TRY
+
+	BEGIN CATCH
+	SELECT ErrMsg = N'Thêm thất bại !' + CONVERT(NVARCHAR(5),ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+	END CATCH
+END
+
+ALTER PROC SuaPhong
+@MaPhong VARCHAR(20),
+@TenPhong NVARCHAR(50),
+@ChucNang NVARCHAR(20),
+@SucChua INT
+AS
+BEGIN
+	BEGIN TRY 
 	UPDATE dbo.PhongHoc
 	SET TenPhong = @TenPhong,
 		ChucNang = @ChucNang,
 		 SucChua = @SucChua		
-	WHERE MaPhong = @MaPhong
-	SELECT ErrMsg = N'Sửa thành công !'
+	WHERE MaPhong = @MaPhong 
+	SELECT ErrMsg = N'Sửa thành công !' 
+	END TRY
+
+	BEGIN CATCH
+	SELECT ErrMsg = N'Sửa thất bại !' + CONVERT(NVARCHAR(5),ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+	END CATCH
 END
 
-CREATE PROC XoaPhong
+ALTER PROC XoaPhong
 @MaPhong VARCHAR(20)
 AS	
 BEGIN
+	BEGIN TRY 
 	DELETE FROM dbo.PhongHoc
 	WHERE MaPhong = @MaPhong
 	SELECT ErrMsg = N'Xóa thành công !'
+	END TRY
+
+	BEGIN CATCH
+	SELECT ErrMsg = N'Xóa thất bại !' + CONVERT(NVARCHAR(5),ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+	END CATCH
 END
 
 --PROC MonHoc
 
-CREATE PROC ThemMon
+ALTER PROC ThemMon
 @MaMon VARCHAR(20),
 @TenMon NVARCHAR(50),
 @TongTiet INT,
 @SoTin INT 
 AS
 BEGIN
+	BEGIN TRY 
 	INSERT INTO MonHoc VALUES(@MaMon, @TenMon, @TongTiet, @SoTin)
 	SELECT ErrMsg = N'Thêm thành công !'
+	END TRY
+
+	BEGIN CATCH
+	SELECT ErrMsg = N'Thêm thất bại !' + CONVERT(NVARCHAR(5),ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+	END CATCH
 END
 
-CREATE PROC SuaMon
+ALTER PROC SuaMon
 @MaMon VARCHAR(20),
 @TenMon NVARCHAR(50),
 @TongTiet INT,
 @SoTin INT 
 AS
 BEGIN
+	BEGIN TRY 
 	UPDATE dbo.MonHoc
 	SET	TenMon   = @TenMon,
 		TongTiet = @TongTiet,
 		SoTin    = @SoTin
 	WHERE MaMon	 = @MaMon
 	SELECT ErrMsg = N'Sửa thành công !'
+	END TRY
+
+	BEGIN CATCH
+	SELECT ErrMsg = N'Sửa thất bại !' + CONVERT(NVARCHAR(5),ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+	END CATCH
 END
 
-CREATE PROC XoaMon
+ALTER PROC XoaMon
 @MaMon VARCHAR(20)
 AS
 BEGIN
+	BEGIN TRY 
 	DELETE FROM dbo.MonHoc
 	WHERE MaMon = @MaMon
 	SELECT ErrMsg = N'Xóa thành công !'
+	END TRY
+
+	BEGIN CATCH
+	SELECT ErrMsg = N'Xóa thất bại !' + CONVERT(NVARCHAR(5),ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+	END CATCH
 END
 --PROC TKB
-ALTER PROC ChonTenTheoMa
-@TenGV NVARCHAR(50)
-AS	
-BEGIN
-	SELECT dbo.TKB.MaGV
-	FROM	dbo.TKB, dbo.GiaoVien
-	WHERE TenGV = @TenGV
-END
-ChonTenTheoMa N'Phạm Mạnh Cương'
-
-CREATE PROC ChonLopTheoMaLop
-@MaLop VARCHAR(20)
-AS	
-BEGIN
-	SELECT Lop.TenLop
-	FROM dbo.Lop
-	WHERE MaLop = @MaLop
-END
-
-CREATE PROC ChonMonTheoMaMon
-@MaMon VARCHAR(20)
+ALTER PROC ChonTKBTheoMaGV
+@MaGV VARCHAR(20)
 AS
 BEGIN
-	SELECT dbo.MonHoc.TenMon
-	FROM dbo.MonHoc
-	WHERE MaMon = @MaMon
+	SELECT *
+	FROM dbo.TKB
+	WHERE MaGV = @MaGV
 END
 
-CREATE PROC ChonPhongTheoMaPhong
+ALTER PROC XemTKB
+@NgayBatDau DATETIME,
+@NgayKetThuc DATETIME
+AS
+BEGIN
+
+	SELECT dbo.TKB.Buoi, dbo.TKB.Ngay, dbo.GiaoVien.TenGV, dbo.Lop.TenLop, dbo.MonHoc.TenMon, dbo.PhongHoc.TenPhong
+	FROM dbo.TKB
+	LEFT JOIN dbo.GiaoVien ON dbo.GiaoVien.MaGV = dbo.TKB.MaGV
+	LEFT JOIN dbo.Lop ON Lop.MaLop = TKB.MaLop
+	LEFT JOIN dbo.MonHoc ON MonHoc.MaMon = TKB.MaMon
+	LEFT JOIN dbo.PhongHoc ON PhongHoc.MaPhong = TKB.MaPhong	
+	WHERE Ngay BETWEEN @NgayBatDau AND @NgayKetThuc
+
+END
+
+ALTER PROC ThemTKB
+@Ngay DATETIME,
+@MaGV VARCHAR(20),
+@MaLop VARCHAR(20),
+@MaMon VARCHAR(20),
+@MaPhong VARCHAR(20),
+@Buoi NVARCHAR(10)
+AS
+BEGIN
+	BEGIN TRY 
+		INSERT INTO TKB VALUES (@Ngay, @MaGV, @MaLop, @MaMon, @MaPhong, @Buoi)
+		SELECT ErrMsg = N'Thêm thành công !'
+	END TRY
+	BEGIN CATCH	
+		SELECT ErrMsg = N'Thêm thất bại ! Error line :' + CONVERT(NVARCHAR(3),ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+	END CATCH
+END
+
+ALTER PROC SuaTKB
+@Ngay DATETIME,
+@MaGV VARCHAR(20),
+@MaLop VARCHAR(20),
+@MaMon VARCHAR(20),
+@MaPhong VARCHAR(20),
+@Buoi NVARCHAR(10)
+AS
+BEGIN
+	BEGIN TRY
+
+		IF	@Ngay < GETDATE()
+			BEGIN
+				SELECT ErrMsg = N'Ngày không hợp lệ !'
+				RETURN 0	
+			END
+		ELSE	
+		UPDATE dbo.TKB
+		SET Ngay = @Ngay,
+			Buoi = @Buoi
+		WHERE	MaGV = @MaGV
+		AND 	MaPhong = @MaPhong
+		AND 	MaLop = @MaLop
+		AND 	MaMon = @MaMon
+		AND @Ngay > GETDATE()
+	SELECT ErrMsg = N'Sửa thành công !'			
+	END TRY
+    BEGIN CATCH
+		SELECT ErrMsg = N'Sửa thất bại ! ErrLine :' + CONVERT(NVARCHAR(3),ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+	END CATCH
+END
+
+ALTER PROC XoaTKB
+@MaGV VARCHAR(20),
+@MaLop VARCHAR(20),
+@MaMon VARCHAR(20),
 @MaPhong VARCHAR(20)
 AS
 BEGIN
-	SELECT dbo.PhongHoc.TenPhong
-	FROM dbo.PhongHoc
-	WHERE MaPhong = @MaPhong
+	BEGIN TRY	
+		DELETE dbo.TKB
+		WHERE  MaGV    = @MaGV
+		AND	   MaLop   = @MaLop
+		AND	   MaMon   = @MaMon
+		AND	   MaPhong = @MaPhong
+		SELECT ErrMsg = N'Xóa thành công !'	
+	END TRY
+    BEGIN CATCH
+		SELECT ErrMsg = N'Xóa thất bại ! ErrLine : ' + CONVERT(NVARCHAR(3), ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+	END CATCH
+END
+
+--PROC Login
+ALTER PROC DN
+@ID VARCHAR(20),
+@Pass VARCHAR(50)
+AS
+BEGIN
+	BEGIN TRY
+		SELECT * FROM dbo.DangNhap
+		WHERE ID = @ID
+		AND Pass = @Pass 
+		AND @ID = 'admin'
+		AND @Pass = 'admin'
+		SELECT ErrMsg = N'Đăng nhập thành công !'
+    END TRY
+    BEGIN CATCH
+		SELECT ErrMsg = N'Đăng nhập thất bại !' + CHAR(10) + ERROR_MESSAGE()
+	END CATCH
 END
