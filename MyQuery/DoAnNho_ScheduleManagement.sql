@@ -443,111 +443,39 @@ BEGIN
 	SELECT ErrMsg = N'Xóa thành công !'
 END
 --PROC TKB
-ALTER PROC ChonTKBTheoMaGV
-@MaGV VARCHAR(20)
-AS
+ALTER PROC ChonTenTheoMa
+@TenGV NVARCHAR(50)
+AS	
 BEGIN
-	SELECT *
-	FROM dbo.TKB
-	WHERE MaGV = @MaGV
+	SELECT dbo.TKB.MaGV
+	FROM	dbo.TKB, dbo.GiaoVien
+	WHERE TenGV = @TenGV
+END
+ChonTenTheoMa N'Phạm Mạnh Cương'
+
+CREATE PROC ChonLopTheoMaLop
+@MaLop VARCHAR(20)
+AS	
+BEGIN
+	SELECT Lop.TenLop
+	FROM dbo.Lop
+	WHERE MaLop = @MaLop
 END
 
-ALTER PROC ThemTKB
-@Ngay DATETIME,
-@MaGV VARCHAR(20),
-@MaLop VARCHAR(20),
-@MaMon VARCHAR(20),
-@MaPhong VARCHAR(20),
-@Buoi NVARCHAR(10)
+CREATE PROC ChonMonTheoMaMon
+@MaMon VARCHAR(20)
 AS
 BEGIN
-	BEGIN TRY 
-		INSERT INTO TKB VALUES (@Ngay, @MaGV, @MaLop, @MaMon, @MaPhong, @Buoi)
-		SELECT ErrMsg = N'Thêm thành công !'
-	END TRY
-	BEGIN CATCH	
-		SELECT ErrMsg = N'Thêm thất bại ! Error line :' + CONVERT(NVARCHAR(3),ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
-	END CATCH
+	SELECT dbo.MonHoc.TenMon
+	FROM dbo.MonHoc
+	WHERE MaMon = @MaMon
 END
 
-ALTER PROC SuaTKB
-@Ngay DATETIME,
-@MaGV VARCHAR(20),
-@MaLop VARCHAR(20),
-@MaMon VARCHAR(20),
-@MaPhong VARCHAR(20),
-@Buoi NVARCHAR(10)
-AS
-BEGIN
-	BEGIN TRY
-		UPDATE dbo.TKB
-		SET Ngay = @Ngay,
-			Buoi = @Buoi
-		WHERE	MaGV = @MaGV
-		AND 	MaPhong = @MaPhong
-		AND 	MaLop = @MaLop
-		AND 	MaMon = @MaMon
-		AND @Ngay > GETDATE()
-	SELECT ErrMsg = N'Sửa thành công !'			
-	END TRY
-    BEGIN CATCH
-		SELECT ErrMsg = N'Sửa thất bại ! ErrLine :' + CONVERT(NVARCHAR(3),ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
-	END CATCH
-END
---DELETE FROM dbo.TKB
---WHERE Ngay <= GETDATE()
-CREATE PROC XoaTKB
-@MaGV VARCHAR(20),
-@MaLop VARCHAR(20),
-@MaMon VARCHAR(20),
+CREATE PROC ChonPhongTheoMaPhong
 @MaPhong VARCHAR(20)
 AS
 BEGIN
-	BEGIN TRY	
-		DELETE dbo.TKB
-		WHERE  MaGV    = @MaGV
-		AND	   MaLop   = @MaLop
-		AND	   MaMon   = @MaMon
-		AND	   MaPhong = @MaPhong
-		SELECT ErrMsg = N'Xóa thành công !'	
-	END TRY
-    BEGIN CATCH
-		SELECT ErrMsg = N'Xóa thất bại ! ErrLine : ' + CONVERT(NVARCHAR(3), ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
-	END CATCH
+	SELECT dbo.PhongHoc.TenPhong
+	FROM dbo.PhongHoc
+	WHERE MaPhong = @MaPhong
 END
-
---PROC XemTKB
-
-ALTER PROC XemTKB
-@NgayBatDau DATETIME,
-@NgayKetThuc DATETIME
-AS
-BEGIN
-
-	SELECT dbo.TKB.Buoi, dbo.TKB.Ngay, dbo.GiaoVien.TenGV, dbo.Lop.TenLop, dbo.MonHoc.TenMon, dbo.PhongHoc.TenPhong
-	FROM dbo.TKB
-	LEFT JOIN dbo.GiaoVien ON dbo.GiaoVien.MaGV = dbo.TKB.MaGV
-	LEFT JOIN dbo.Lop ON Lop.MaLop = TKB.MaLop
-	LEFT JOIN dbo.MonHoc ON MonHoc.MaMon = TKB.MaMon
-	LEFT JOIN dbo.PhongHoc ON PhongHoc.MaPhong = TKB.MaPhong	
-	WHERE Ngay BETWEEN @NgayBatDau AND @NgayKetThuc
-
-END
---SELECT DATEPART(WEEKDAY, '2020-10-16') AS DatePartInt;
-
--- PROC DangNhap
-ALTER PROC DN
-@ID VARCHAR(20),
-@Pass VARCHAR(50)
-AS
-BEGIN
-		SELECT * FROM dbo.DangNhap
-		WHERE ID = @ID
-		AND Pass = @Pass 
-		AND @ID = 'admin'
-		AND @Pass = 'admin'
-END
-DN 'admin', 'f'
-
-
-
