@@ -117,7 +117,16 @@ ALTER PROC ThemKhoa
 AS
 BEGIN
 	BEGIN TRY 
-
+		IF	@MaKhoa = '' OR @TenKhoa = '' OR @DienThoai = '' OR @Email = ''
+			BEGIN
+				SELECT ErrMsg = N'Trống !'
+				RETURN 0
+			END
+		IF	@DienThoai != CONVERT(INT, @DienThoai)
+			BEGIN
+				RETURN 
+			END
+		ELSE	
 		INSERT dbo.Khoa
 		VALUES (@MaKhoa, @TenKhoa, @DienThoai, @Email)
 		SELECT ErrMsg = N'Thêm thành công !'
@@ -171,6 +180,11 @@ ALTER PROC ThemLop
 AS
 BEGIN
 	BEGIN TRY
+		IF	@SiSo != CONVERT(INTEGER, @SiSo)
+		BEGIN
+			RETURN
+		END
+	ELSE	
 		INSERT dbo.Lop
 		VALUES (@MaLop, @TenLop, @SiSo, @MaKhoa)
 		SELECT ErrMsg = N'Thêm thành công !'
@@ -188,6 +202,9 @@ ALTER PROC SuaLop
 AS 
 BEGIN
 	BEGIN TRY	
+		IF	@SiSo != CONVERT(INT, @SiSo)
+		RETURN 0
+	ELSE 
 		UPDATE dbo.Lop
 		SET TenLop  = @TenLop,
 			SiSo    = @SiSo,
@@ -299,10 +316,16 @@ ALTER PROC ThemPhong
 @MaPhong VARCHAR(20),
 @TenPhong NVARCHAR(50),
 @ChucNang NVARCHAR(20),
-@SucChua INT
+@SucChua VARCHAR(5)
 AS
 BEGIN
-	BEGIN TRY 
+	BEGIN TRY
+	IF	@SucChua != CONVERT(INTEGER, @SucChua)
+		BEGIN
+			SELECT ErrMsg = N'Lỗi !'
+			RETURN 0
+		END
+	ELSE	
 	INSERT INTO	 PhongHoc VALUES (@MaPhong, @TenPhong, @ChucNang, @SucChua)
 	SELECT ErrMsg = N'Thêm thành công !'
 	END TRY
@@ -316,10 +339,16 @@ ALTER PROC SuaPhong
 @MaPhong VARCHAR(20),
 @TenPhong NVARCHAR(50),
 @ChucNang NVARCHAR(20),
-@SucChua INT
+@SucChua VARCHAR(5)
 AS
 BEGIN
 	BEGIN TRY 
+		IF	@SucChua != CONVERT(INTEGER, @SucChua)
+		BEGIN
+			SELECT ErrMsg = N'Lỗi !'
+			RETURN 0
+		END
+	ELSE	
 	UPDATE dbo.PhongHoc
 	SET TenPhong = @TenPhong,
 		ChucNang = @ChucNang,
@@ -439,6 +468,11 @@ ALTER PROC ThemTKB
 AS
 BEGIN
 	BEGIN TRY 
+		IF	@Ngay < GETDATE()
+			BEGIN
+				SELECT ErrMsg = N'Ngày không hợp lệ !'
+				RETURN 0
+			END
 		INSERT INTO TKB VALUES (@Ngay, @MaGV, @MaLop, @MaMon, @MaPhong, @Buoi)
 		SELECT ErrMsg = N'Thêm thành công !'
 	END TRY
@@ -463,14 +497,20 @@ BEGIN
 				SELECT ErrMsg = N'Ngày không hợp lệ !'
 				RETURN 0	
 			END	
+		ELSE	
 		UPDATE dbo.TKB
 		SET Ngay = @Ngay,
+			MaGV = @MaGV,
+			MaLop = @MaLop,
+			MaMon = @MaMon,
+			MaPhong = @MaPhong,
 			Buoi = @Buoi
-		WHERE MaGV = @MaGV
-		AND 	MaLop = @MaLop
-		AND		MaMon = @MaMon
-		AND		MaPhong = @MaPhong
-		AND		@Ngay > GETDATE()
+		WHERE	MaGV = @MaGV
+		--AND		MaGV = @MaGV
+		--AND 	MaLop = @MaLop
+		--AND		MaMon = @MaMon
+		--AND		MaPhong = @MaPhong
+		--AND		Buoi = @Buoi
 	SELECT ErrMsg = N'Sửa thành công !'			
 	END TRY
     BEGIN CATCH
