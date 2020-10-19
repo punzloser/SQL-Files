@@ -133,7 +133,7 @@ BEGIN
 
 	END TRY
 	BEGIN CATCH
-		SELECT ErrMsg = N'Thêm thất bại !' + CONVERT(NVARCHAR(5), ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+		SELECT ErrMsg = N'Thêm thất bại !' + CHAR(10) + ERROR_MESSAGE()
 	END CATCH
 END
 
@@ -153,7 +153,7 @@ BEGIN
 		SELECT ErrMsg = N'Sửa thành công !'
 	END TRY
 	BEGIN CATCH
-		SELECT ErrMsg = N'Sửa Thất bại !' + CONVERT(NVARCHAR(5),ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+		SELECT ErrMsg = N'Sửa Thất bại !' + CHAR(10) + ERROR_MESSAGE()
 	END CATCH
 END
 
@@ -167,7 +167,7 @@ BEGIN
 		SELECT ErrMsg = N'Xóa thành công !'
 	END TRY
 	BEGIN CATCH
-		SELECT ErrMsg = N'Xóa thất bại !' + CONVERT(NVARCHAR(5),ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+		SELECT ErrMsg = N'Xóa thất bại !' + CHAR(10) + ERROR_MESSAGE()
 	END CATCH
 END
 
@@ -182,7 +182,8 @@ BEGIN
 	BEGIN TRY
 		IF	@SiSo != CONVERT(INTEGER, @SiSo)
 		BEGIN
-			RETURN
+			SELECT ErrMsg = N'Lỗi !'
+			RETURN 0
 		END
 	ELSE	
 		INSERT dbo.Lop
@@ -190,7 +191,7 @@ BEGIN
 		SELECT ErrMsg = N'Thêm thành công !'
 	END TRY
 	BEGIN CATCH
-		SELECT ErrMsg = N'Thêm thất bại !' + CONVERT(NVARCHAR(5),ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+		SELECT ErrMsg = N'Thêm thất bại !' + CHAR(10) + ERROR_MESSAGE()
 	END CATCH
 END
 
@@ -214,7 +215,7 @@ BEGIN
 	END TRY
 
 	BEGIN CATCH
-		SELECT ErrMsg = N'Sửa thất bại !' + CONVERT(NVARCHAR(5),ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+		SELECT ErrMsg = N'Sửa thất bại !' + CHAR(10) + ERROR_MESSAGE()
 	END CATCH
 END
 
@@ -230,7 +231,7 @@ BEGIN
 	END TRY 
 
 	BEGIN CATCH
-		SELECT ErrMsg = N'Xóa thất bại !' + CONVERT(NVARCHAR(5),ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+		SELECT ErrMsg = N'Xóa thất bại !' + CHAR(10) + ERROR_MESSAGE()
 	END CATCH
 END
 
@@ -252,7 +253,7 @@ BEGIN
 	END TRY
 
 	BEGIN CATCH
-	SELECT ErrMsg = N'Thêm thất bại !' + CONVERT(NVARCHAR(5),ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+	SELECT ErrMsg = N'Thêm thất bại !' + CHAR(10) + ERROR_MESSAGE()
 	END CATCH
 END
 
@@ -279,7 +280,7 @@ BEGIN
 	 END TRY 
 
 	 BEGIN CATCH
-	 SELECT ErrMsg = N'Sửa thất bại !' + CONVERT(NVARCHAR(5),ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+	 SELECT ErrMsg = N'Sửa thất bại !' + CHAR(10) + ERROR_MESSAGE()
 	 END CATCH
 END
 
@@ -308,7 +309,7 @@ BEGIN
 	END TRY 
 
 	BEGIN CATCH
-	SELECT ErrMsg = N'Xóa thất bại !' + CONVERT(NVARCHAR(5),ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+	SELECT ErrMsg = N'Xóa thất bại !' + CHAR(10) + ERROR_MESSAGE()
 	END CATCH
 END
 --PROC PhongHoc
@@ -320,6 +321,11 @@ ALTER PROC ThemPhong
 AS
 BEGIN
 	BEGIN TRY
+	IF	@MaPhong = '' OR @TenPhong = '' OR @ChucNang = '' OR @SucChua = ''
+		BEGIN
+			SELECT ErrMsg = N'Trống !'
+			RETURN 0
+		END
 	IF	@SucChua != CONVERT(INTEGER, @SucChua)
 		BEGIN
 			SELECT ErrMsg = N'Lỗi !'
@@ -331,7 +337,7 @@ BEGIN
 	END TRY
 
 	BEGIN CATCH
-	SELECT ErrMsg = N'Thêm thất bại !' + CONVERT(NVARCHAR(5),ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+	SELECT ErrMsg = N'Thêm thất bại !' + CHAR(10) + ERROR_MESSAGE()
 	END CATCH
 END
 
@@ -358,7 +364,7 @@ BEGIN
 	END TRY
 
 	BEGIN CATCH
-	SELECT ErrMsg = N'Sửa thất bại !' + CONVERT(NVARCHAR(5),ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+	SELECT ErrMsg = N'Sửa thất bại !' + CHAR(10) + ERROR_MESSAGE()
 	END CATCH
 END
 
@@ -373,7 +379,7 @@ BEGIN
 	END TRY
 
 	BEGIN CATCH
-	SELECT ErrMsg = N'Xóa thất bại !' + CONVERT(NVARCHAR(5),ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+	SELECT ErrMsg = N'Xóa thất bại !' + CHAR(10) + ERROR_MESSAGE()
 	END CATCH
 END
 
@@ -382,28 +388,42 @@ END
 ALTER PROC ThemMon
 @MaMon VARCHAR(20),
 @TenMon NVARCHAR(50),
-@TongTiet INT,
-@SoTin INT 
+@TongTiet VARCHAR(5),
+@SoTin VARCHAR(5)
 AS
 BEGIN
 	BEGIN TRY 
+	IF	@TongTiet != CONVERT(INT, @TongTiet) OR @SoTin != CONVERT(INT, @SoTin)
+	BEGIN
+		RETURN 0
+	END
+	IF	@MaMon = '' OR @TenMon = '' OR @TongTiet = '' OR @SoTin = '' 
+		BEGIN
+			SELECT ErrMsg = N'Trống !'
+			RETURN 0
+		END
+	ELSE	
 	INSERT INTO MonHoc VALUES(@MaMon, @TenMon, @TongTiet, @SoTin)
 	SELECT ErrMsg = N'Thêm thành công !'
 	END TRY
 
 	BEGIN CATCH
-	SELECT ErrMsg = N'Thêm thất bại !' + CONVERT(NVARCHAR(5),ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+	SELECT ErrMsg = N'Thêm thất bại !' + CHAR(10) + ERROR_MESSAGE()
 	END CATCH
 END
 
 ALTER PROC SuaMon
 @MaMon VARCHAR(20),
 @TenMon NVARCHAR(50),
-@TongTiet INT,
-@SoTin INT 
+@TongTiet VARCHAR(5),
+@SoTin VARCHAR(5)
 AS
 BEGIN
 	BEGIN TRY 
+	IF	@TongTiet != CONVERT(INT, @TongTiet) OR @SoTin != CONVERT(INT, @SoTin)
+	BEGIN
+		RETURN 0
+	END	
 	UPDATE dbo.MonHoc
 	SET	TenMon   = @TenMon,
 		TongTiet = @TongTiet,
@@ -413,7 +433,7 @@ BEGIN
 	END TRY
 
 	BEGIN CATCH
-	SELECT ErrMsg = N'Sửa thất bại !' + CONVERT(NVARCHAR(5),ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+	SELECT ErrMsg = N'Sửa thất bại !' + CHAR(10) + ERROR_MESSAGE()
 	END CATCH
 END
 
@@ -428,7 +448,7 @@ BEGIN
 	END TRY
 
 	BEGIN CATCH
-	SELECT ErrMsg = N'Xóa thất bại !' + CONVERT(NVARCHAR(5),ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+	SELECT ErrMsg = N'Xóa thất bại !' + CHAR(10) + ERROR_MESSAGE()
 	END CATCH
 END
 --PROC TKB
@@ -458,6 +478,9 @@ BEGIN
 
 END
 
+
+--
+
 ALTER PROC ThemTKB
 @Ngay DATETIME,
 @MaGV VARCHAR(20),
@@ -477,7 +500,7 @@ BEGIN
 		SELECT ErrMsg = N'Thêm thành công !'
 	END TRY
 	BEGIN CATCH	
-		SELECT ErrMsg = N'Thêm thất bại ! Error line :' + CONVERT(NVARCHAR(3),ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+		SELECT ErrMsg = N'Thêm thất bại !' + CHAR(10) + ERROR_MESSAGE()
 	END CATCH
 END
 
@@ -514,7 +537,7 @@ BEGIN
 	SELECT ErrMsg = N'Sửa thành công !'			
 	END TRY
     BEGIN CATCH
-		SELECT ErrMsg = N'Sửa thất bại ! ErrLine :' + CONVERT(NVARCHAR(3),ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+		SELECT ErrMsg = N'Sửa thất bại !' + CHAR(10) + ERROR_MESSAGE()
 	END CATCH
 END
 
@@ -534,7 +557,7 @@ BEGIN
 		SELECT ErrMsg = N'Xóa thành công !'	
 	END TRY
     BEGIN CATCH
-		SELECT ErrMsg = N'Xóa thất bại ! ErrLine : ' + CONVERT(NVARCHAR(3), ERROR_LINE()) + CHAR(10) + ERROR_MESSAGE()
+		SELECT ErrMsg = N'Xóa thất bại !' + CHAR(10) + ERROR_MESSAGE()
 	END CATCH
 END
 
@@ -556,7 +579,3 @@ BEGIN
 		SELECT ErrMsg = N'Đăng nhập thất bại !' + CHAR(10) + ERROR_MESSAGE()
 	END CATCH
 END
-
--- delete error line
--- themphong trống
--- themgv trống
