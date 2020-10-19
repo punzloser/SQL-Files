@@ -556,3 +556,7 @@ BEGIN
 		SELECT ErrMsg = N'Đăng nhập thất bại !' + CHAR(10) + ERROR_MESSAGE()
 	END CATCH
 END
+
+-- delete error line
+-- themphong trống
+-- themgv trống
