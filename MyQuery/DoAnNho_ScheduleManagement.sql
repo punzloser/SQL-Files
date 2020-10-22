@@ -529,11 +529,9 @@ BEGIN
 			MaPhong = @MaPhong,
 			Buoi = @Buoi
 		WHERE	MaGV = @MaGV
-		--AND		MaGV = @MaGV
-		--AND 	MaLop = @MaLop
-		--AND		MaMon = @MaMon
-		--AND		MaPhong = @MaPhong
-		--AND		Buoi = @Buoi
+		AND 	MaLop = @MaLop
+		AND 	MaMon = @MaMon
+		AND 	MaPhong = @MaPhong
 	SELECT ErrMsg = N'Sửa thành công !'			
 	END TRY
     BEGIN CATCH
@@ -579,3 +577,4 @@ BEGIN
 		SELECT ErrMsg = N'Đăng nhập thất bại !' + CHAR(10) + ERROR_MESSAGE()
 	END CATCH
 END
+
