@@ -239,7 +239,7 @@ Create PROC Pro_Out_Cau1 (@tenhv varchar(10), @sogv int OUTPUT)
 As	
 	If Exists (Select mshv From HOCVI Where tenhv=@tenhv)
 		Begin
-			Select @sogv=COUNT(*) From GIAOVIEN t1, GV_HV_CN t2,HOCVI t3
+			Select @sogv=COUNT(*) From GIAOVIEN t1, dbo.gv_hd_cn t2,HOCVI t3
 			Where t1.msgv=t2.msgv and t2.mshv=t3.mshv and t3.tenhv=@tenhv
 		End
 	Else
