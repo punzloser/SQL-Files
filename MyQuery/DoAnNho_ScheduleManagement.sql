@@ -578,3 +578,11 @@ BEGIN
 	END CATCH
 END
 
+CREATE PROC	HienThiTatCaLop
+
+AS
+BEGIN
+	SELECT l.MaLop, l.TenLop, l.MaKhoa, k.TenKhoa
+	FROM dbo.Lop l
+	LEFT JOIN dbo.Khoa k ON	k.MaKhoa = l.MaKhoa
+END
