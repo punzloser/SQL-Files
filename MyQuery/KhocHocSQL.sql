@@ -258,19 +258,490 @@ FROM dbo.Ket_Qua
 LEFT JOIN 	 
 (SELECT dbo.Ket_Qua.MaMH, MAX(dbo.Ket_Qua.Lan_Thi) LanThiCuoi
 FROM dbo.Ket_Qua
-WHERE dbo.Ket_Qua.MaSV = '0212003'
+WHERE dbo.Ket_Qua.MaSV = '0212002'
 GROUP BY dbo.Ket_Qua.MaMH) TABLE2 
 ON TABLE2.MaMH = Ket_Qua.MaMH
-WHERE MaSV = '0212003'
+WHERE MaSV = '0212002'
 AND dbo.Ket_Qua.Lan_Thi = TABLE2.LanThiCuoi
 
+
+--FUNCTION
+
+GO
 --1. Với 1 mã sinh viên và 1 mã khoa, kiểm tra xem sinh viên có thuộc
 --khoa này không (trả về đúng hoặc sai)
+CREATE FUNCTION UF_Check_SV_Thuoc_Khoa
+(
+@MaSV VARCHAR(10),
+@MaKhoa VARCHAR(10)
+)
+RETURNS VARCHAR(5)
+AS
+BEGIN
+	DECLARE @KetQua VARCHAR(5)
+
+IF EXISTS(
+			SELECT * FROM dbo.Sinh_Vien
+			LEFT JOIN dbo.Lop ON Lop.Ma_Lop = Sinh_Vien.MaLop
+			LEFT JOIN dbo.Khoa ON Khoa.Ma_Khoa = Lop.Ma_Khoa
+			WHERE MaSV = @MaSV
+			AND Khoa.Ma_Khoa = @MaKhoa)
+			BEGIN
+				SET @KetQua = 'true'
+			END
+ELSE	
+	SET @KetQua = 'false'
+RETURN @KetQua
+END
+
+SELECT dbo.UF_Check_SV_Thuoc_Khoa('0212002', 'CNTT')
+
+
 --2. Tính điểm thi sau cùng của một sinh viên trong một môn học cụ thể
+/*
+CÁCH 1
+ALTER FUNCTION UF_CheckDiemSVSaucung_C1
+	(
+      @MaSV VARCHAR(10) ,
+      @MaMH VARCHAR(10)
+    )
+RETURNS FLOAT
+AS
+    BEGIN
+        DECLARE @Diem FLOAT
+        SELECT  TOP 1 @Diem = Diem
+        FROM    dbo.Ket_Qua
+        WHERE   MaSV = @MaSV
+                AND MaMH = @MaMH
+		ORDER BY Lan_Thi DESC
+        RETURN @Diem
+    END
+GO
+
+select dbo.UF_CheckDiemSVSaucung_C1 ('0212002', 'THCS01')
+SELECT * FROM dbo.Ket_Qua
+*/
+CREATE FUNCTION UF_CheckDiemSVSaucung_C2
+(
+@MaSV VARCHAR(10),
+@MaMH VARCHAR(10)
+)
+RETURNS FLOAT
+AS
+BEGIN
+	DECLARE @DiemThiCuoi FLOAT
+
+	SELECT @DiemThiCuoi = dbo.Ket_Qua.Diem
+	FROM dbo.Ket_Qua
+	LEFT JOIN(
+			SELECT dbo.Ket_Qua.MaSV, dbo.Ket_Qua.MaMH, MAX(Lan_Thi) AS LanThiSauCung
+			FROM dbo.Ket_Qua
+			WHERE MaSV = @MaSV
+			AND MaMH = @MaMH
+			GROUP BY dbo.Ket_Qua.MaSV, dbo.Ket_Qua.MaMH) table2 
+							ON table2.MaMH = Ket_Qua.MaMH AND table2.MaSV = Ket_Qua.MaSV
+							WHERE dbo.Ket_Qua.MaSV = @MaSV
+							AND dbo.Ket_Qua.MaMH = @MaMH
+							AND table2.LanThiSauCung = dbo.Ket_Qua.Lan_Thi
+
+	RETURN @DiemThiCuoi
+END
+
+SELECT dbo.UF_CheckDiemSVSaucung_C2('0212001', 'THT01')
+
+
 --3. Tính điểm trung bình của một sinh viên (chú ý : điểm trung bình
---được tính dựa trên lần thi sau cùng), sử dụng function 5.2 đã viết
+--được tính dựa trên lần thi sau cùng), sử dụng function 2 đã viết
+-- cach sai of kteam
+CREATE FUNCTION UF_TinhDTBLanThiSauCung_Howkteam
+(
+	@MaSV VARCHAR(10)
+)
+RETURNS FLOAT
+AS
+BEGIN
+	--DECLARE @MaSV VARCHAR(10)
+	DECLARE @DTB FLOAT 
+	--SET @MaSV = '0212002'
+	DECLARE @MaMH VARCHAR(10)
+	SELECT @DTB = AVG(dbo.UF_CheckDiemSVSaucung_C1(MaSV, dbo.Ket_Qua.MaMH)) 
+    FROM dbo.Ket_Qua
+	WHERE MaSV = @MaSV
+
+	PRINT @DTB
+END
+
+SELECT * FROM dbo.Ket_Qua
+--Cách pro trên mạng
+CREATE FUNCTION UF_TinhDTBLanThiSauCung_CachTrenMang
+(
+@MaSV VARCHAR(10)
+)
+RETURNS float 
+AS
+BEGIN
+	DECLARE @DiemTB FLOAT
+	SELECT @DiemTB = AVG(table2.Diem)
+	FROM 
+	(SELECT DISTINCT dbo.Ket_Qua.MaMH, dbo.UF_CheckDiemSVSaucung_C2(MaSV, dbo.Ket_Qua.MaMH) AS Diem
+	FROM dbo.Ket_Qua
+	WHERE dbo.Ket_Qua.MaSV = @MaSV) AS table2
+
+	RETURN @DiemTB
+END
+
+SELECT dbo.UF_TinhDTBLanThiSauCung_CachTrenMang ('0212002')
+
+
+--Tính DTB lần thi sau cùng không sử dụng lại function 2
+
+ALTER FUNCTION UF_TinhDTBLanThiSauCung2
+(
+@MaSV VARCHAR(10)
+)
+RETURNS FLOAT
+AS
+BEGIN
+
+	DECLARE @DTB FLOAT 
+	SELECT @DTB = AVG(dbo.Ket_Qua.Diem)
+	FROM dbo.Ket_Qua
+	LEFT JOIN
+				(
+				SELECT dbo.Ket_Qua.MaMH, MAX(dbo.Ket_Qua.Lan_Thi) AS LANTHICUOI
+				FROM dbo.Ket_Qua
+				WHERE MaSV = @MaSV
+				GROUP BY MaMH
+				) table2		ON table2.MaMH = Ket_Qua.MaMH
+								WHERE MaSV = @MaSV
+								AND table2.LANTHICUOI = dbo.Ket_Qua.Lan_Thi
+	RETURN ROUND(@DTB,1)
+END
+
+SELECT dbo.UF_TinhDTBLanThiSauCung2 ('0212001')
+
+
 --4. Nhập vào 1 sinh viên và 1 môn học, trả về các điểm thi của sinh viên
 --này trong các lần thi của môn học đó.
+
+CREATE FUNCTION UF_TraVeDiemThi
+(
+@MaSV VARCHAR(10),
+@MaMH VARCHAR(10)
+)
+RETURNS TABLE
+RETURN 
+
+	SELECT dbo.Ket_Qua.Lan_Thi, dbo.Ket_Qua.Diem
+	FROM dbo.Ket_Qua
+	WHERE MaSV = @MaSV
+	AND MaMH = @MaMH
+
+-- return table "* from"
+SELECT * FROM dbo.UF_TraVeDiemThi ('0212001', 'THT01')
+SELECT * FROM dbo.Ket_Qua
+
 --Bài tập về nhà
 --5. Nhập vào 1 sinh viên, trả về danh sách các môn học mà sinh viên này phải
 --học. (Bài tập về nhà)
+
+ALTER FUNCTION UF_TraVeDSMonHocOfSV
+(
+	@MaSV VARCHAR(10)
+)
+RETURNS TABLE
+RETURN
+	SELECT dbo.Mon_Hoc.TenMH FROM dbo.Mon_Hoc
+	 LEFT JOIN dbo.Khoa ON Khoa.Ma_Khoa = Mon_Hoc.Ma_Khoa
+	 LEFT JOIN dbo.Lop ON Lop.Ma_Khoa = Mon_Hoc.Ma_Khoa
+	 LEFT JOIN dbo.Sinh_Vien ON Sinh_Vien.MaLop = Lop.Ma_Lop
+	WHERE  dbo.Sinh_Vien.MaSV = @MaSV
+
+SELECT * FROM dbo.UF_TraVeDSMonHocOfSV('0212001')
+SELECT * FROM dbo.Sinh_Vien
+SELECT * FROM dbo.Khoa
+SELECT * FROM dbo.Mon_Hoc
+SELECT * FROM dbo.Lop
+
+--PROCEDURE
+--1.In danh sách các sinh viên của 1 lớp học
+CREATE PROC UP_Print_List_Of_Students
+@MaLop VARCHAR(10)
+AS
+BEGIN
+	--DECLARE @MaLop VARCHAR(10)
+	--SET @MaLop = 'TH2003/01'
+	SELECT * FROM dbo.Sinh_Vien
+	WHERE dbo.Sinh_Vien.MaLop = @MaLop
+END
+UP_Print_List_Of_Students 'TH2002/01'
+
+
+--2.Nhập vào 2 sinh viên, 1 môn học, tìm xem sinh viên nào có điểm thi môn học đó lần đầu tiên là cao hơn.
+
+--function
+CREATE FUNCTION Check_Score_Lan1_Of_Student
+(
+	@MaSV VARCHAR(10),
+	@MaMH VARCHAR(10)
+)
+RETURNS FLOAT
+AS
+BEGIN
+	DECLARE @KQ FLOAT
+    SELECT @KQ = dbo.Ket_Qua.Diem FROM dbo.Ket_Qua
+	WHERE MaMH = @MaMH
+	AND MaSV = @MaSV
+	AND Lan_Thi = 1
+
+	RETURN @KQ
+END
+SELECT dbo.Check_Score_Lan1_Of_Student ('0212001', 'THT01')
+
+
+ALTER PROC UP_Compare_Students_Having_High_Score_Lan1
+@MaSV1 VARCHAR(10),
+@MaSV2 VARCHAR(10),
+@MaMH VARCHAR(10)
+AS
+BEGIN
+
+	--SET @MaSV1 = '0212001'
+	--SET @MaSV2 = '0212003'
+	--SET @MaMH = 'THT01'
+
+	DECLARE @KQ1 FLOAT
+    DECLARE @KQ2 FLOAT
+    
+	SELECT @KQ1 = dbo.Check_Score_Lan1_Of_Student(@MaSV1, @MaMH)
+	SELECT @KQ2 = dbo.Check_Score_Lan1_Of_Student(@MaSV2, @MaMH)
+	IF(@KQ1 > @KQ2)
+		PRINT @MaSV1 + N' có điểm thi cao hơn'
+	ELSE
+		PRINT @MaSV2 + N' có điểm thi cao hơn'
+END
+
+UP_Compare_Students_Having_High_Score_Lan1 '0212001', '0212003', 'THT01'
+
+--3.Nhập vào 1 môn học và 1 mã sv, kiểm tra xem sinh viên có đậu môn này trong lần thi đầu tiên không,
+ --nếu đậu thì xuất ra là “Đậu”, không thì xuất ra “Không đậu”
+
+ALTER PROC UP_Check_Score_Student_Pass_Exam_Lan1
+@MaMH NVARCHAR(100),
+@MaSV VARCHAR(10)
+AS
+BEGIN
+--DECLARE @MaMH VARCHAR(10)
+--DECLARE @MaSV VARCHAR(10)
+--SET @TenMH = N'Toán cao cấp A1'
+--SET @MaSV = '0212001'
+	IF EXISTS(
+				SELECT * FROM dbo.Ket_Qua
+				WHERE  dbo.Ket_Qua.MaMH = @MaMH
+				AND MaSV = @MaSV
+				AND dbo.Ket_Qua.Lan_Thi = 1 AND dbo.Ket_Qua.Diem >= 5)
+
+				BEGIN
+					PRINT N'Đậu'
+				END
+	ELSE	
+		PRINT N'Rớt'
+END
+
+UP_Check_Score_Student_Pass_Exam_Lan1 'THT01','0212001'
+SELECT * FROM dbo.Ket_Qua
+
+--4.Nhập vào 1 khoa, in danh sách các sinh viên (mã sinh viên, họ tên, ngày sinh) thuộc khoa này.
+
+CREATE PROC UP_Print_List_Students_Of_Khoa
+@MaKhoa VARCHAR(10)
+AS
+BEGIN
+	--DECLARE @MaKhoa VARCHAR(10)
+	--SET @MaKhosa = 'VL'
+	SELECT dbo.Sinh_Vien.MaSV, dbo.Sinh_Vien.Ho_Ten, dbo.Sinh_Vien.Nam_Sinh
+    FROM dbo.Sinh_Vien
+	LEFT JOIN dbo.Lop ON Lop.Ma_Lop = Sinh_Vien.MaLop
+	LEFT JOIN dbo.Khoa ON Khoa.Ma_Khoa = Lop.Ma_Khoa
+	WHERE Khoa.Ma_Khoa = @MaKhoa
+END
+
+UP_Print_List_Students_Of_Khoa 'CNTT'
+
+--5.Nhập vào 1 sinh viên và 1 môn học, in điểm thi của sinh viên này của các lần thi môn học đó.
+--Ví dụ:  Lần 1 : 10 Lần 2: 8
+
+CREATE PROC UP_Print_Score_ALL_LanThi_Of_Student
+@MaSV VARCHAR(10),
+ @MaMH VARCHAR(10)
+AS
+BEGIN
+	--DECLARE @MaSV VARCHAR(10)
+	--DECLARE @MaMH VARCHAR(10)
+	--SET @MaSV = '0212001'
+	--SET @MaMH = 'THT01'
+
+	SELECT dbo.Ket_Qua.Lan_Thi, dbo.Ket_Qua.Diem FROM dbo.Ket_Qua
+	WHERE MaSV = @MaSV AND MaMH = @MaMH
+
+END
+UP_Print_Score_ALL_LanThi_Of_Student '0212002', 'THT01'
+
+--6.Nhập vào 1 sinh viên, in ra các môn học mà sinh viên này phải học.
+
+ALTER PROC UP_Print_ALL_Subject_ofStudent
+@MaSV VARCHAR(10)
+AS
+BEGIN
+	--DECLARE @MaSV VARCHAR(10)
+	--SET @MaSV = '0311001'
+	SELECT * FROM dbo.UF_TraVeDSMonHocOfSV(@MaSV)
+	--SELECT dbo.Mon_Hoc.TenMH 
+	--FROM dbo.Mon_Hoc
+	--LEFT JOIN dbo.Lop ON Lop.Ma_Khoa = Mon_Hoc.Ma_Khoa
+	--LEFT JOIN dbo.Sinh_Vien ON Sinh_Vien.MaLop = Lop.Ma_Lop
+	--WHERE MaSV = @MaSV
+END
+UP_Print_ALL_Subject_ofStudent '0311002' SELECT * FROM dbo.Sinh_Vien
+
+--7.Nhập vào 1 môn học, in danh sách các sinh viên đậu môn này trong lần thi đầu tiên. 
+CREATE PROC UP_Print_All_ListSV_DauLanThi1
+@MaMH VARCHAR(10)
+AS
+BEGIN
+	SELECT dbo.Sinh_Vien.Ho_Ten FROM dbo.Sinh_Vien
+	LEFT JOIN dbo.Ket_Qua ON Ket_Qua.MaSV = Sinh_Vien.MaSV
+	WHERE MaMH = @MaMH
+	AND dbo.Ket_Qua.Lan_Thi = 1 AND dbo.Ket_Qua.Diem > 5
+END
+UP_Print_All_ListSV_DauLanThi1 'THT02'
+SELECT * FROM dbo.Ket_Qua
+
+--8.In điểm các môn học của sinh viên có mã số là maSinhVien được nhập vào.
+--Chú ý: điểm của môn học là điểm thi của lần thi sau cùng
+
+ALTER PROC UP_Print_Score_Subject_ofSV_C1
+@MaSV VARCHAR(10)
+AS
+BEGIN
+	--DECLARE @MaSV VARCHAR(10)
+	--SET @MaSV = '0212001'
+	
+	SELECT * FROM dbo.Ket_Qua
+	WHERE MaSV = @MaSV
+	AND Lan_Thi = ( SELECT MAX(Lan_Thi)
+					FROM dbo.Ket_Qua kq2
+					WHERE kq2.MaMH = dbo.Ket_Qua.MaMH
+					AND kq2.MaSV = dbo.Ket_Qua.MaSV )
+
+END
+UP_Print_Score_Subject_ofSV_C1 '0212001'
+
+CREATE PROC UP_Print_Score_Subject_ofSV_C2
+@MaSV VARCHAR(10)
+AS
+BEGIN
+	--DECLARE @MaSV VARCHAR(10)
+	--SET @MaSV = '0212001'
+	SELECT dbo.Ket_Qua.* FROM dbo.Ket_Qua
+	LEFT JOIN (
+				SELECT dbo.Ket_Qua.MaSV, dbo.Ket_Qua.MaMH, MAX(Lan_Thi) AS LanThiSauCung 
+				FROM dbo.Ket_Qua
+				WHERE MaSV = @MaSV
+				GROUP BY dbo.Ket_Qua.MaSV, dbo.Ket_Qua.MaMH) table2 ON table2.MaMH = Ket_Qua.MaMH AND table2.MaSV = Ket_Qua.MaSV
+
+				WHERE  table2.LanThiSauCung = dbo.Ket_Qua.Lan_Thi
+END
+UP_Print_Score_Subject_ofSV_C2 '0212001'
+
+--Thêm 1 quan hệ XepLoai:maSV	diemTrungBinh	ketQua	hocLuc
+--9.Quy định : ketQua của sinh viên là 'Đạt' nếu diemTrungBinh (chỉ tính các môn đã có điểm) của sinh viên đó 
+--lớn hơn hoặc bằng 5 và không quá 2 môn dưới 4 điểm, ngược lại thì kết quả là không đạtĐưa dữ liệu vào bảng xếp loại.
+-- Sử dụng function 3 đã viết ở bài 4
+--Đối với những sinh viên có ketQua là 'Đạt' thì hocLuc được xếp loại như sau:
+
+-- diemTrungBinh >= 8 thì hocLuc là ”Giỏi”
+--7 < = diemTrungBinh < 8 thì hocLuc là ”Khá” Còn lại là ”Trung bình”  
+--10.Với các sinh viên có tham gia đầy đủ các môn học của khoa, chương trình mà sinh viên đang theo học, 
+--hãy in ra điểm trung bình cho các sinh viên này.
+--Chú ý: Điểm trung bình được tính dựa trên điểm thi lần sau cùng. Sử dụng function 3 đã viết ở bài 4 
+
+ALTER VIEW XepLoai
+AS
+SELECT dbo.Sinh_Vien.MaSV AS 'masv',
+dbo.UF_TinhDTBLanThiSauCung2(Sinh_Vien.MaSV) AS 'dtb',
+dbo.UF_KetQua(Sinh_Vien.MaSV) AS 'ketqua',
+dbo.UF_HocLuc(Sinh_Vien.MaSV) AS 'hocluc'
+FROM dbo.Sinh_Vien
+
+
+ALTER FUNCTION UF_KetQua
+(
+	@MaSV VARCHAR(10)
+)
+RETURNS NVARCHAR(20)
+AS
+BEGIN
+	DECLARE @KetQua NVARCHAR(20)
+	DECLARE @DTB FLOAT
+	DECLARE @Kiemtra TINYINT
+
+	SET @DTB = (SELECT dbo.UF_TinhDTBLanThiSauCung2(@MaSV))
+	
+;WITH temp1 as
+	(
+	SELECT dbo.Ket_Qua.MaSV, dbo.Ket_Qua.MaMH, 
+	dbo.Check_Score_Lan1_Of_Student(dbo.Ket_Qua.MaSV, dbo.Ket_Qua.MaMH)AS [Điểm]
+	FROM dbo.Ket_Qua
+	WHERE dbo.Ket_Qua.MaSV = @MaSV
+	AND dbo.Check_Score_Lan1_Of_Student(dbo.Ket_Qua.MaSV, dbo.Ket_Qua.MaMH) <=4
+	GROUP BY dbo.Ket_Qua.MaSV, dbo.Ket_Qua.MaMH
+	)
+	
+	SELECT @Kiemtra = COUNT(*) FROM temp1
+
+	IF (@DTB = null)
+		SET @KetQua = NULL
+    ELSE
+		BEGIN
+			IF (@DTB >= 5 AND @Kiemtra <= 2)
+				SET @KetQua = N'đạt'
+			ELSE	
+				SET @KetQua = N'Không đạt'
+		END
+
+	RETURN @KetQua
+END
+SELECT dbo.UF_KetQua('0212002')
+
+CREATE FUNCTION UF_HocLuc
+(
+ @MaSV VARCHAR(10)
+)
+RETURNS NVARCHAR(20)
+AS
+BEGIN
+	DECLARE @HocLuc NVARCHAR(20)
+	DECLARE @KetQua NVARCHAR(20)
+	DECLARE @DTB FLOAT
+    
+	SET @KetQua = (SELECT dbo.UF_KetQua(@MaSV))
+	SET @DTB = (SELECT dbo.UF_TinhDTBLanThiSauCung2(@MaSV))
+
+	IF (@KetQua = N'đạt')
+	BEGIN
+		IF (@DTB >= 8)
+			SET @HocLuc = N'giỏi'
+		ELSE
+			IF (@DTB >= 7)
+				SET @HocLuc = N'khá'
+			ELSE	
+				SET @HocLuc = N'tb'
+	END
+	ELSE
+		SET @HocLuc = NULL
+RETURN @HocLuc
+END
+SELECT dbo.UF_HocLuc('0212004')
+
+SELECT  * FROM dbo.Ket_Qua
