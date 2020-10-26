@@ -31,7 +31,7 @@ alter view bai4vw ([Ten dt], [quyet dinh])
 as
 select tendt, quyetdinh
 from detai t1, hoidong_dt t2,hoidong t3
-where t1.msdt = t2.msdt and t2.mshd = t3.mshd and t3.tintrang = N'Thử' and t2.quyetdinh= N'Được'
+where t1.msdt = t2.msdt and t2.mshd = t3.mshd and t3.tinhtrang = N'Thử' and t2.quyetdinh= N'Được'
 
 
 -----------------------------------------------------------------------

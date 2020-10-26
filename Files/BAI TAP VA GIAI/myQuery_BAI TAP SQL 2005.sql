@@ -219,3 +219,110 @@ END
 UP_8A 'Lý An'
 SELECT * FROM dbo.sinhvien
 
+ALTER PROC UP_1B
+(
+@tenhv NVARCHAR(10)
+)
+AS
+BEGIN
+	--DECLARE @tenhv NVARCHAR(10)
+	--SET @tenhv = N'KS'
+	IF EXISTS(SELECT dbo.gv_hd_cn.msgv
+			  FROM dbo.gv_hd_cn
+			  LEFT JOIN dbo.giaovien ON giaovien.msgv = gv_hd_cn.msgv
+			  LEFT JOIN dbo.hocvi ON hocvi.mshv = gv_hd_cn.mshv
+			  WHERE tenhv = @tenhv)
+
+			  BEGIN
+			  	
+				SELECT COUNT(DISTINCT dbo.gv_hd_cn.msgv) AS [Số_GV_thỏa_HV] FROM dbo.gv_hd_cn
+				LEFT JOIN dbo.giaovien ON giaovien.msgv = gv_hd_cn.msgv
+				LEFT JOIN dbo.hocvi ON hocvi.mshv = gv_hd_cn.mshv
+				WHERE tenhv = @tenhv
+
+			  END
+	ELSE	
+		RETURN 
+	
+
+	--SELECT * FROM dbo.hocvi
+	--SELECT * FROM dbo.giaovien
+	--SELECT * FROM dbo.gv_hd_cn
+END
+UP_1B 'KS'
+
+ALTER FUNCTION UF_2B
+(
+	@msdt char(6)
+)
+RETURNS FLOAT
+AS
+BEGIN
+	--DECLARE @msdt char(6)
+	--SET @msdt = '97001'
+	DECLARE @DTB FLOAT	
+	SET @DTB = 0
+
+	IF EXISTS(SELECT dbo.detai.msdt FROM dbo.detai
+			  LEFT JOIN dbo.gv_hddt ON gv_hddt.msdt = detai.msdt
+			  LEFT JOIN dbo.gv_pbdt ON gv_pbdt.msdt = detai.msdt
+			  LEFT JOIN dbo.gv_uvdt ON gv_uvdt.msdt = detai.msdt
+			  WHERE dbo.detai.msdt = @msdt)
+
+			  BEGIN
+			  	
+				SELECT @DTB = (dbo.gv_hddt.diem + dbo.gv_pbdt.diem + 3*dbo.gv_uvdt.diem)/5
+				FROM dbo.detai
+				JOIN dbo.gv_hddt ON gv_hddt.msdt = detai.msdt
+				JOIN dbo.gv_pbdt ON gv_pbdt.msdt = detai.msdt
+				JOIN dbo.gv_uvdt ON gv_uvdt.msdt = detai.msdt
+				AND dbo.detai.msdt = @msdt
+
+			  END
+	ELSE	
+		RETURN 0
+	
+	--PRINT @DTB
+
+	--SELECT * FROM gv_hddt
+	--SELECT * FROM dbo.gv_pbdt
+	--SELECT * FROM dbo.gv_uvdt
+RETURN ROUND(@DTB,1)	
+END
+SELECT dbo.UF_2B ('97001')
+
+ALTER FUNCTION UF_3B
+(
+	@tengv nvarchar(30)
+)
+RETURNS TABLE
+RETURN
+		SELECT dbo.giaovien.sodt AS SoDT FROM dbo.giaovien
+		WHERE dbo.giaovien.tengv = @tengv
+	
+SELECT * FROM dbo.UF_3B(N'Lê Trung')
+SELECT * FROM dbo.giaovien
+
+ALTER PROC UP_5B
+@tengv NVARCHAR(30)
+AS
+BEGIN
+	--DECLARE @tengv NVARCHAR(30)
+	--SET @tengv = N'Lê Trung'
+	DECLARE @sodt_hd TINYINT 
+	DECLARE @sodt_pb TINYINT 
+
+	SELECT @sodt_hd = COUNT(dbo.gv_hddt.msgv) FROM dbo.gv_hddt
+	LEFT JOIN dbo.giaovien ON giaovien.msgv = gv_hddt.msgv
+	WHERE tengv = @tengv
+
+	PRINT N'số đề tài hướng dẫn : '+ CAST(@sodt_hd AS NVARCHAR(30))
+
+	SELECT @sodt_pb = COUNT(dbo.gv_pbdt.msgv) FROM dbo.gv_pbdt
+	LEFT JOIN dbo.giaovien ON giaovien.msgv = gv_pbdt.msgv
+	WHERE tengv = @tengv
+
+	PRINT N'số đề tài phản biện : '+ CAST(@sodt_pb AS NVARCHAR(30))
+
+END
+UP_5B N'Lê Trung'

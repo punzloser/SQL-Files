@@ -1,10 +1,7 @@
 /*A STORED PROCEDUREDS VOI THAM SO VAO*/
 
 --Cau1
-If Exists (Select name From sysobjects Where name like 'Pro_cau1')
-Drop Procedured Pro_Cau1
-Go
-Create PROC Pro_Cau1 ( @msgv smallint, @tengv varchar(30),@sodt varchar(10), @diachi varchar(50),@mshh smallint,@namhh varchar(15))
+Create PROC Pro_Cau1( @msgv smallint, @tengv varchar(30),@sodt varchar(10), @diachi varchar(50),@mshh smallint,@namhh varchar(15))
 As
 	If Exists (Select mshh From HOCHAM Where mshh=@mshh)
 	Begin
@@ -21,9 +18,6 @@ Exec Pro_Cau1 7,'Nguyen Anh Tuan','0122455878','26 Nguyen thi minh khai',2,'1/1/
 Go
 
 --Cau 2
-If Exists (Select name From sysobjects Where name like 'Pro_cau2')
-Drop Procedured Pro_Cau2
-Go
 Create PROC Pro_Cau2 ( @msgv smallint, @tengv varchar(30),@sodt varchar(10), @diachi varchar(50),@mshh smallint,@namhh varchar(15))
 As
 	If Exists (Select mshh From HOCHAM Where mshh=@mshh)
@@ -44,9 +38,6 @@ Exec Pro_Cau2 8,'Nguyen Mai Anh','0906455878','26 Tran Phu',2,'5/8/2001'
 Go
 
 --Cau 3
-If Exists (Select name From sysobjects Where name like 'Pro_cau3')
-Drop Procedured Pro_Cau3
-Go
 Create PROC Pro_Cau3 ( @msgv smallint, @tengv varchar(30),@sodt varchar(10), @diachi varchar(50),@mshh smallint,@namhh varchar(15))
 As
 	If Exists (Select mshh From HOCHAM Where mshh=@mshh)
@@ -68,9 +59,6 @@ Exec Pro_Cau3 8,'Nguyen Mai Anh','0906455878','26 Tran Phu',2,'5/8/2001'
 Go
 
 --Cau 4
-If Exists (Select name From sysobjects Where name like 'Pro_Cau4')
-Drop Procedure Pro_Cau4
-Go
 
 Create PROC Pro_Cau4 (@msdt char(6),@tendetaimoi varchar(30))
 As
@@ -93,9 +81,6 @@ Go
 Select * From DETAI 
 
 --Cau 5
-If Exists (Select name From sysobjects Where name like 'Pro_Cau5')
-Drop Procedure Pro_Cau5
-Go
 
 Create PROC Pro_Cau5 (@mssv char(6),@tensv_moi varchar(30),@diachi_moi varchar(50))
 As
@@ -119,48 +104,49 @@ Select * From SINHVIEN
 Go
 
 --Cau 6
-If Exists (Select name From sysobjects Where name like 'Pro_Cau6')
-Drop Procedure Pro_Cau6
-Go
-
-Create PROC Pro_Cau6 (@msdt char(6))
+alter PROC Pro_Cau6 (@msdt char(6))
 As
 	If Exists (Select msgv From GV_PBDT Where msdt=@msdt)
 	Begin
-		--Neu co trigger thi tam thoi vo hieu hoa chung
-		Alter Table GV_HDDT disable trigger all
+	
 		Declare @gvhd smallint, @gvpb smallint
-		Set @gvhd= (Select msgv Grom GV_HDDT Where msdt=@msdt)
-		Set @gvpb= (Select msgv Grom GV_PBDT Where msdt=@msdt)
+
+		Set @gvhd=(Select msgv from GV_HDDT Where msdt=@msdt)
+		Set @gvpb=(Select msgv from GV_PBDT Where msdt=@msdt)
 
 		Update GV_HDDT
 		Set msgv=@gvpb
-		Where msgv=@gvhd
+		Where msdt=@msdt
 		Print 'Da cap nhat du lieu trong Table GV_HDDT'
 
 		Update GV_PBDT
 		Set msgv=@gvhd
-		Where msgv=@gvpb
+		Where msdt=@msdt
 		Print 'Da cap nhat du lieu trong Table GV_PBDT'
---Kich hoat lai cac trigger neu co
-		Alter Table GV_HDDT enable trigger all
+
 	End
 	Else
-		Print 'Khong co ma so Giang vien tuong ung trong Table GV_PBDT'
-		Return 0
+		begin
+			Print 'Khong co ma so Giang vien tuong ung trong Table GV_PBDT'
+			Return 0
+		end
 Go
+
+
+Exec Pro_cau6 '97001'
+
+
+
 --Kiem tra lai truoc va sau khi chay pro_cau6
 Select * From GV_HDDT Where msdt='97001'
 Go
 
 Select * From GV_PBDT Where msdt='97001'
 Go
-Exec Pro_cau6 '97001'
+
 
 --Cau 7
-If Exists (Select name From sysobjects Where name like 'Pro_Cau7')
-Drop Procedure Pro_Cau7
-Go
+
 
 Create PROC Pro_Cau7 (@tengv varchar(30), @tensv varchar(30))
 As
@@ -203,11 +189,7 @@ Select * From GV_HDDT
 Go
 
 --Cau 8
-If Exists (Select name From sysobjects Where name like 'Pro_Cau8')
-Drop Procedure Pro_Cau8
-Go
-
-Create PROC Pro_Cau8 (@tensv varchar(30))
+alter PROC Pro_Cau8 (@tensv varchar(30))
 As
 --Neu co ten sinh vien can xoa
 	If Exists (Select mssv From SINHVIEN Where tensv=@tensv)
@@ -219,9 +201,11 @@ As
 			Return 0
 		End	
 		Else
+		begin
 			Delete From SINHVIEN Where tensv=@tensv
 			Print 'Da xoa sinh vien co ten:'+@tensv
 			Return 0
+		end
 	End
 Go
 --Kiem tra
@@ -231,15 +215,11 @@ Select * From SINHVIEN
 /*B. Stored Procedure voi tham so vao va ra*/
 
 --Cau 1
-If Exists (Select name From sysobjects Where name like 'Pro_Out_Cau1')
-Drop Procedure Pro_Out_Cau1
-Go
-
 Create PROC Pro_Out_Cau1 (@tenhv varchar(10), @sogv int OUTPUT)
 As	
 	If Exists (Select mshv From HOCVI Where tenhv=@tenhv)
 		Begin
-			Select @sogv=COUNT(*) From GIAOVIEN t1, dbo.gv_hd_cn t2,HOCVI t3
+			Select @sogv=COUNT(*) From GIAOVIEN t1, GV_HV_CN t2,HOCVI t3
 			Where t1.msgv=t2.msgv and t2.mshv=t3.mshv and t3.tenhv=@tenhv
 		End
 	Else
@@ -256,9 +236,7 @@ Print 'Voi hoc vi'+@tenhv+'co:'+CAST(@sogv as varchar)+'giao vien thoa hoc vi'
 Go
 
 --Cau 2
-If Exists (Select name From sysobjects Where name like 'Pro_Out_Cau2')
-Drop Procedure Pro_Out_Cau2
-Go
+
 
 Create PROC Pro_Out_Cau2 (@msdt char(6),@diemtrungbinh float OUTPUT)
 As	
@@ -287,9 +265,7 @@ Print 'Diem trung binh cua de tai'+@msdt+'la:'+CAST(@dtb as varchar)
 Go
 
 --Cau 3
-If Exists (Select name From sysobjects Where name like 'Pro_Out_Cau3')
-Drop Procedure Pro_Out_Cau3
-Go
+
 
 Create PROC Pro_Out_Cau3 (@tengv varchar(30),@sodt varchar(10) OUTPUT)
 As	
@@ -319,9 +295,7 @@ Print 'Giao vien'+@tengv+'co so dien thoai:'+@sodt
 Go
 
 --Cau 4
-If Exists (Select name From sysobjects Where name like 'Pro_Out_Cau4')
-Drop Procedure Pro_Out_Cau4
-Go
+
 
 Create PROC Pro_Out_Cau4 (@mshd smallint, @tenchutichhd varchar(30)OUTPUT,@sodt varchar(10) OUTPUT)
 As	
@@ -346,43 +320,9 @@ Print 'So dien thoai cua chu tich hoi dong so'+CAST(@mshd as varchar)+'la:'+@sod
 Go
 
 
+
 --Cau 5
-If Exists (Select name From sysobjects Where name like 'Pro_Out_Cau5')
-Drop Procedure Pro_Out_Cau5
-Go
 
-Create PROC Pro_Out_Cau5 (@mshd smallint,@diemtb float OUTPUT)
-As	
-	Begin
-		Select @diemtb=AVG((a.dgvhd+b.dgvpb+c.dgvuv)/3)	
-		From (Select msdt,SUM(diem)/COUNT(msdt) as dgvhd 
-		      From GV_HDDT 
-		      Where msdt in (Select msdt From HOIDONG_DT Where mshd=@mshd)
-		      Group by msdt) a,   	
-		     
-		     (Select msdt,SUM(diem)/COUNT(msdt) as dgvpb 
-		      From GV_PBDT 
-		      Where msdt in (Select msdt From HOIDONG_DT Where mshd=@mshd)
-		      Group by msdt) b,   	
-
-		     (Select msdt,SUM(diem)/COUNT(msdt) as dgvuv 
-		      From GV_HDDT 
-		      Where msdt in (Select msdt From HOIDONG_DT Where mshd=@mshd)
-		      Group by msdt) c,
-		Where a.msdt=b.msdt and a.msdt=c.msdt   	
-	End
-Go
---Kiem tra
-
-Declare @diemtbsv_hd float
-Exec Pro_Out_Cau5 1,@diemtbsv_hd OUTPUT
-Print @diemtbsv_hd
-Go
-
---Cau 6
-If Exists (Select name From sysobjects Where name like 'Pro_Out_Cau6')
-Drop Procedure Pro_Out_Cau6
-Go
 
 Create PROC Pro_Out_Cau6 (@tengv varchar(30),@sodthd int OUTPUT,sodtpb int OUTPUT)
 As	
