@@ -215,11 +215,11 @@ Select * From SINHVIEN
 /*B. Stored Procedure voi tham so vao va ra*/
 
 --Cau 1
-Create PROC Pro_Out_Cau1 (@tenhv varchar(10), @sogv int OUTPUT)
+create PROC Pro_Out_Cau1 (@tenhv varchar(10), @sogv int OUTPUT)
 As	
 	If Exists (Select mshv From HOCVI Where tenhv=@tenhv)
 		Begin
-			Select @sogv=COUNT(*) From GIAOVIEN t1, GV_HV_CN t2,HOCVI t3
+			Select @sogv=COUNT(*) From GIAOVIEN t1, gv_hd_cn t2,HOCVI t3
 			Where t1.msgv=t2.msgv and t2.mshv=t3.mshv and t3.tenhv=@tenhv
 		End
 	Else
@@ -248,7 +248,7 @@ As
 			Select @diemgvhd=SUM(diem),@so_gvhd=COUNT(*) From GV_HDDT Where msdt=@msdt
 			Select @diemgvpb=SUM(diem),@so_gvpb=COUNT(*) From GV_PBDT Where msdt=@msdt
 			Select @diemgvuv=SUM(diem),@so_gvuv=COUNT(*) From GV_UVDT Where msdt=@msdt
-			Set @diemtrungbinh=(@diemgvhd+@diemgvpb+@diemgvuv)/(so_gvhd+@so_gvpb+@so_gvuv)
+			Set @diemtrungbinh=(@diemgvhd+@diemgvpb+@diemgvuv)/(@so_gvhd+@so_gvpb+@so_gvuv)
 		End
 	Else
 		Begin

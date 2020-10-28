@@ -1,122 +1,4 @@
-﻿--Tao database
-Create database dbdetai
-go
-USE dbdetai
-go
---Tao Tables
-
-create table sinhvien
-(
-mssv char(6) primary key,
-tensv nvarchar(30) not null,
-sodt varchar(10),
-lop char(6),
-diachi nchar(50)
-)
-go
-create table detai
-(
-msdt char(6) primary key, 
-tendt nvarchar(30)not null
-)
-go
-create table sv_detai
-(
-mssv char(6),
-msdt char(6),
-primary key (mssv,msdt)
-)
-go
-create table giaovien
-(
-msgv smallint primary key,
-tengv nvarchar(30) not null,
-diachi nvarchar(50)not null,
-sodt varchar(10)not null,
-mshham smallint,
-namhh smalldatetime
-)
-go
-create table hocvi
-(
-mshv smallint primary key,
-tenhv nvarchar(10)not null
-)
-go
-create table chuyennganh
-(
-mscn smallint primary key,
-tencn nvarchar(30) not null
-)
-go
-create table hocham
-(
-mshh smallint primary key,
-tenhh nvarchar(20)not null
-)
-go
-create table gv_hd_cn
-(
-msgv smallint,
-mshv smallint,
-mscn smallint,
-nam smalldatetime not null,
-primary key (msgv, mshv,mscn)
-)
-go
-create table gv_hddt
-(
-msgv smallint,
-msdt char(6),
-diem float not null,
-primary key (msgv,msdt)
-)
-go
-create table gv_pbdt
-(
-msgv smallint,
-msdt char(6),
-diem float not null,
-primary key (msgv,msdt)
-)
-go
-create table gv_uvdt
-(
-msgv smallint,
-msdt char(6),
-diem float not null,
-primary key (msgv,msdt)
-)
-go
-create table hoidong
-(
-mshd smallint primary key,
-phong smallint,
-tgbd smalldatetime,
-ngayhd smalldatetime not null,
-tintrang nvarchar(30)not null,
-msgvcthd smallint
-)
-go
-create table hoidong_gv
-(
-mshd smallint,
-msgv smallint,
-primary key (mshd,msgv)
-)
-go
-create table hoidong_dt
-(
-mshd smallint,
-msdt char(6),
-quyetdinh char(10),
-primary key (mshd,msdt)
-)
-go
-----------------------------------------------.
-----------------------------------------------.
-----------------------------------------------.
-ALTER PROC UP_6A
+﻿CREATE PROC UP_6A
 @msdt CHAR(6)
 AS
 BEGIN
@@ -221,52 +103,49 @@ SELECT * FROM dbo.sinhvien
 
 ALTER PROC UP_1B
 (
-@tenhv NVARCHAR(10)
+@tenhv NVARCHAR(10),
+@sogv_thoa TINYINT OUT
 )
 AS
 BEGIN
 	--DECLARE @tenhv NVARCHAR(10)
 	--SET @tenhv = N'KS'
-	IF EXISTS(SELECT dbo.gv_hd_cn.msgv
-			  FROM dbo.gv_hd_cn
-			  LEFT JOIN dbo.giaovien ON giaovien.msgv = gv_hd_cn.msgv
-			  LEFT JOIN dbo.hocvi ON hocvi.mshv = gv_hd_cn.mshv
+	IF EXISTS(SELECT dbo.hocvi.mshv FROM dbo.hocvi
 			  WHERE tenhv = @tenhv)
 
 			  BEGIN
 			  	
-				SELECT COUNT(DISTINCT dbo.gv_hd_cn.msgv) AS [Số_GV_thỏa_HV] FROM dbo.gv_hd_cn
+				SELECT @sogv_thoa = COUNT(dbo.gv_hd_cn.msgv) FROM dbo.gv_hd_cn
 				LEFT JOIN dbo.giaovien ON giaovien.msgv = gv_hd_cn.msgv
 				LEFT JOIN dbo.hocvi ON hocvi.mshv = gv_hd_cn.mshv
 				WHERE tenhv = @tenhv
+				PRINT N'Có ' + CAST(@sogv_thoa AS VARCHAR(5)) + N' thỏa học vị '+ @tenhv
 
 			  END
 	ELSE	
-		RETURN 
+		PRINT N'Không có GV nào thõa tên học vị : ' +@tenhv 
 	
-
-	--SELECT * FROM dbo.hocvi
-	--SELECT * FROM dbo.giaovien
-	--SELECT * FROM dbo.gv_hd_cn
 END
-UP_1B 'KS'
+GO
 
-ALTER FUNCTION UF_2B
+DECLARE @tenhv NVARCHAR(10) = 'Th.s', @sogv_thoa TINYINT
+--Set @tenhv='Th.s'
+EXEC UP_1B @tenhv, @sogv_thoa OUT
+
+
+ALTER PROC UP_2B
 (
-	@msdt char(6)
+	@msdt char(6),
+	@DTB FLOAT OUT 
 )
-RETURNS FLOAT
 AS
 BEGIN
 	--DECLARE @msdt char(6)
 	--SET @msdt = '97001'
-	DECLARE @DTB FLOAT	
 	SET @DTB = 0
 
 	IF EXISTS(SELECT dbo.detai.msdt FROM dbo.detai
-			  LEFT JOIN dbo.gv_hddt ON gv_hddt.msdt = detai.msdt
-			  LEFT JOIN dbo.gv_pbdt ON gv_pbdt.msdt = detai.msdt
-			  LEFT JOIN dbo.gv_uvdt ON gv_uvdt.msdt = detai.msdt
+			  
 			  WHERE dbo.detai.msdt = @msdt)
 
 			  BEGIN
@@ -278,51 +157,126 @@ BEGIN
 				JOIN dbo.gv_uvdt ON gv_uvdt.msdt = detai.msdt
 				AND dbo.detai.msdt = @msdt
 
+				PRINT N'Điểm trung bình của đề tài '+@msdt + '= ' + CAST(@DTB AS VARCHAR)
+
 			  END
 	ELSE	
+		PRINT N'Không tìm thấy mã số đề tài : '+CAST(@msdt AS VARCHAR)
 		RETURN 0
-	
-	--PRINT @DTB
-
-	--SELECT * FROM gv_hddt
-	--SELECT * FROM dbo.gv_pbdt
-	--SELECT * FROM dbo.gv_uvdt
-RETURN ROUND(@DTB,1)	
 END
-SELECT dbo.UF_2B ('97001')
 
-ALTER FUNCTION UF_3B
+DECLARE @msdt char(6) = '97001', @DTB FLOAT 
+--SET @msdt = '97001'
+EXEC UP_2B @msdt, @DTB OUT
+
+
+ALTER PROC UP_3B
 (
-	@tengv nvarchar(30)
+	@tengv nvarchar(30),
+	@SDT varchar(10) OUT
 )
-RETURNS TABLE
-RETURN
-		SELECT dbo.giaovien.sodt AS SoDT FROM dbo.giaovien
-		WHERE dbo.giaovien.tengv = @tengv
-	
-SELECT * FROM dbo.UF_3B(N'Lê Trung')
-SELECT * FROM dbo.giaovien
-
-ALTER PROC UP_5B
-@tengv NVARCHAR(30)
 AS
 BEGIN
-	--DECLARE @tengv NVARCHAR(30)
-	--SET @tengv = N'Lê Trung'
-	DECLARE @sodt_hd TINYINT 
-	DECLARE @sodt_pb TINYINT 
+	IF EXISTS ( SELECT * FROM dbo.giaovien WHERE tengv = @tengv)
+		BEGIN
+			SELECT @SDT = dbo.giaovien.sodt FROM dbo.giaovien
+			WHERE dbo.giaovien.tengv = @tengv
 
-	SELECT @sodt_hd = COUNT(dbo.gv_hddt.msgv) FROM dbo.gv_hddt
-	LEFT JOIN dbo.giaovien ON giaovien.msgv = gv_hddt.msgv
-	WHERE tengv = @tengv
+			PRINT N'Giáo viên '+CAST(@tengv AS NVARCHAR) + N' có SDT : ' + CAST(@SDT AS VARCHAR)	
 
-	PRINT N'số đề tài hướng dẫn : '+ CAST(@sodt_hd AS NVARCHAR(30))
-
-	SELECT @sodt_pb = COUNT(dbo.gv_pbdt.msgv) FROM dbo.gv_pbdt
-	LEFT JOIN dbo.giaovien ON giaovien.msgv = gv_pbdt.msgv
-	WHERE tengv = @tengv
-
-	PRINT N'số đề tài phản biện : '+ CAST(@sodt_pb AS NVARCHAR(30))
-
+		END
+	ELSE	
+		PRINT N'Không tìm thấy giáo viên '+ CAST(@tengv AS NVARCHAR)
+		RETURN 0
+--SELECT * FROM dbo.UF_3B(N'Lê Trung')
+--SELECT * FROM dbo.giaovien
 END
-UP_5B N'Lê Trung'
+GO
+
+DECLARE @tengv NVARCHAR(30) = N'Lê Trung', @SDT NVARCHAR(10)
+EXEC UP_3B @tengv, @SDT OUT
+
+ALTER PROC UP_4B
+@mshd SMALLINT,
+@ten NVARCHAR(30) OUT,
+@sdt NVARCHAR(30) OUT
+AS
+BEGIN
+	--DECLARE @ten NVARCHAR(30)
+	--DECLARE @sdt NVARCHAR(30)
+	--DECLARE @mshd SMALLINT
+	--SET @mshd = 6
+
+	IF EXISTS ( SELECT dbo.hoidong.mshd FROM dbo.hoidong WHERE mshd = @mshd)
+
+		BEGIN
+		
+		SELECT @ten = dbo.giaovien.tengv FROM dbo.giaovien
+		LEFT JOIN dbo.hoidong ON giaovien.msgv = hoidong.msgvcthd
+		WHERE mshd = @mshd
+
+		SELECT @sdt = dbo.giaovien.sodt FROM dbo.giaovien
+		LEFT JOIN dbo.hoidong ON giaovien.msgv = hoidong.msgvcthd
+		WHERE mshd = @mshd
+
+		PRINT N'MSHD : '+ CAST(@mshd AS VARCHAR) + CHAR(10)
+			+N'Tên chủ tịch hội đồng : '+CAST(@ten AS NVARCHAR) + CHAR(10) 
+			+N'Số ĐT : '+CAST(@sdt AS VARCHAR)
+		END
+	ELSE
+		PRINT N'Không tìm thấy mshd : '+CAST(@mshd AS VARCHAR)
+		RETURN 0
+	
+END
+GO
+
+
+DECLARE @mshd SMALLINT = 3, @ten NVARCHAR(30), @sdt NVARCHAR(30)
+EXEC UP_4B @mshd, @ten OUT, @sdt OUT
+
+ALTER PROC UP_5B
+@tenhv NVARCHAR(10),
+@sodetaihd TINYINT OUT,
+@sodetaipb TINYINT OUT 
+AS
+BEGIN
+	--DECLARE @tenhv NVARCHAR(10) = 'TSKH'
+	--DECLARE @sodetaihd TINYINT
+	--DECLARE @sodetaipb TINYINT
+
+	IF EXISTS ( SELECT dbo.hocvi.mshv FROM dbo.hocvi WHERE tenhv = @tenhv)
+		
+		BEGIN
+			
+			SELECT @sodetaihd = COUNT(dbo.gv_hddt.msdt) FROM dbo.gv_hddt
+						LEFT JOIN dbo.gv_hd_cn ON gv_hd_cn.msgv = gv_hddt.msgv
+						LEFT JOIN dbo.hocvi ON hocvi.mshv = gv_hd_cn.mshv
+						WHERE dbo.hocvi.tenhv = @tenhv
+
+			SELECT @sodetaipb = COUNT(dbo.gv_pbdt.msdt) FROM dbo.gv_pbdt
+								LEFT JOIN dbo.gv_hd_cn ON gv_hd_cn.msgv = gv_pbdt.msgv
+								LEFT JOIN dbo.hocvi ON hocvi.mshv = gv_hd_cn.mshv
+								WHERE dbo.hocvi.tenhv = @tenhv
+			PRINT N'Với học vị : '+ @tenhv + CHAR(10)
+			+N'Số đề tài hướng dẫn : '+CAST(@sodetaihd AS VARCHAR)+CHAR(10)
+			+N'Số đề tài phản biện : '+CAST(@sodetaipb AS VARCHAR)
+		END 
+	ELSE
+		 PRINT N'Không có kết quả nào từ học vị này'
+		 RETURN 0
+END
+GO
+
+
+DECLARE @tenhv NVARCHAR(10) = 'TSKH', @sodetaihd TINYINT, @sodetaipb TINYINT
+EXEC UP_5B @tenhv, @sodetaihd OUT, @sodetaipb OUT 
+
+CREATE TRIGGER UTG_1C
+ON detai
+FOR DELETE
+AS
+BEGIN
+	
+END
+Delete From DETAI Where msdt='97005' 
+
