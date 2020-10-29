@@ -337,24 +337,74 @@ BEGIN
 END
 spAvgStudent N'Nguyễn Thùy Linh'
 
+
+-- 8
+ALTER PROC spCountStudentPassSubject
+@TenMonHoc NVARCHAR(50),
+@KetQua TINYINT OUT 
+AS
+BEGIN
+	--DECLARE @TenMonHoc NVARCHAR(50) = N'Cơ sở dữ liệu'
+	--DECLARE @KetQua TINYINT
+
+	SELECT @KetQua = COUNT(dbo.HocVien.MaHocVien) FROM dbo.HocVien
+	LEFT JOIN dbo.KetQua ON KetQua.MaHV = HocVien.MaHocVien
+	LEFT JOIN dbo.MonHoc ON MonHoc.MaMonHoc = KetQua.MaMonHoc
+	WHERE TenMonHoc = @TenMonHoc
+	AND Diem >= 5
+	AND TinhTrang IN ( SELECT dbo.HocVien.TinhTrang
+						FROM dbo.HocVien
+						LEFT JOIN dbo.KetQua ON KetQua.MaHV = HocVien.MaHocVien
+						LEFT JOIN dbo.MonHoc ON MonHoc.MaMonHoc = KetQua.MaMonHoc
+						WHERE TinhTrang NOT LIKE N'Đang%')
+
+	PRINT  N' có ' + CAST(@KetQua AS VARCHAR) + N' sinh viên [đã từng] thi đậu môn ' + CAST(@TenMonHoc AS NVARCHAR)
+	--SELECT * FROM dbo.HocVien
+	--SELECT * FROM dbo.KetQua
+	--SELECT * FROM dbo.MonHoc
+END
+DECLARE @TenMonHoc NVARCHAR(50) = N'Cơ sở dữ liệu', @KetQua TINYINT 
+EXEC spCountStudentPassSubject @TenMonHoc, @KetQua OUT 
+
+-- 9
+CREATE PROC spPrintListDetailSubject
+AS
+BEGIN
+	
+	SELECT dbo.MonHoc.TenMonHoc AS [Tên MH], SUM(IIF( dbo.KetQua.LanThi = 2, 1, 0)) AS [Số SV vẫn chưa thi đậu] FROM dbo.MonHoc
+	LEFT JOIN dbo.KetQua ON KetQua.MaMonHoc = MonHoc.MaMonHoc
+	LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
+	WHERE dbo.KetQua.Diem < 5
+	GROUP BY TenMonHoc 
+
+
+	SELECT * FROM dbo.HocVien
+	SELECT * FROM dbo.KetQua
+	SELECT * FROM dbo.MonHoc
+END
+spPrintListDetailSubject
+
+
 -- test
 
 CREATE TRIGGER trTest
-ON GiaoVien
-FOR DELETE 
+ON MonHoc
+FOR  DELETE
 AS 
 BEGIN
+
 	--SELECT * FROM inserted
 	--SELECT * FROM deleted
 
-	INSERT INTO vwTestGiaoVien
+	INSERT INTO test
 	SELECT * FROM deleted 
+
 END
 
 
-ALTER VIEW vwTestGiaoVien AS
-SELECT * FROM dbo.MonHoc WHERE 2 = 1
-	
+SELECT * INTO test
+FROM dbo.MonHoc
+WHERE 1 > 2
 
 
 
