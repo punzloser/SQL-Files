@@ -101,7 +101,7 @@ END
 UP_8A 'Lý An'
 SELECT * FROM dbo.sinhvien
 
-ALTER PROC UP_1B
+CREATE PROC UP_1B
 (
 @tenhv NVARCHAR(10),
 @sogv_thoa TINYINT OUT
@@ -133,7 +133,7 @@ DECLARE @tenhv NVARCHAR(10) = 'Th.s', @sogv_thoa TINYINT
 EXEC UP_1B @tenhv, @sogv_thoa OUT
 
 
-ALTER PROC UP_2B
+CREATE PROC UP_2B
 (
 	@msdt char(6),
 	@DTB FLOAT OUT 
@@ -170,7 +170,7 @@ DECLARE @msdt char(6) = '97001', @DTB FLOAT
 EXEC UP_2B @msdt, @DTB OUT
 
 
-ALTER PROC UP_3B
+CREATE PROC UP_3B
 (
 	@tengv nvarchar(30),
 	@SDT varchar(10) OUT
@@ -196,7 +196,7 @@ GO
 DECLARE @tengv NVARCHAR(30) = N'Lê Trung', @SDT NVARCHAR(10)
 EXEC UP_3B @tengv, @SDT OUT
 
-ALTER PROC UP_4B
+CREATE PROC UP_4B
 @mshd SMALLINT,
 @ten NVARCHAR(30) OUT,
 @sdt NVARCHAR(30) OUT
@@ -234,7 +234,7 @@ GO
 DECLARE @mshd SMALLINT = 3, @ten NVARCHAR(30), @sdt NVARCHAR(30)
 EXEC UP_4B @mshd, @ten OUT, @sdt OUT
 
-ALTER PROC UP_5B
+CREATE PROC UP_5B
 @tenhv NVARCHAR(10),
 @sodetaihd TINYINT OUT,
 @sodetaipb TINYINT OUT 
