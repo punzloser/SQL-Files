@@ -265,11 +265,12 @@ BEGIN
 	LEFT JOIN dbo.LopHoc l ON gv.MaGV = l.GVQuanLi
 	WHERE l.MaLop = @MaLop
 
-	PRINT N'Họ tên GV quản lí lớp : '+ CAST(@MaLop AS VARCHAR) + '-> ' + CAST(@ketqua AS NVARCHAR)
 END
 
 DECLARE @MaLop NCHAR(10) = 'LH000001', @ketqua NVARCHAR(20)
 EXEC spPrintNameTeacher_Out @MaLop, @ketqua OUT 
+PRINT N'Họ tên GV quản lí lớp : '+ CAST(@MaLop AS VARCHAR) + '-> ' + CAST(@ketqua AS NVARCHAR)
+
 
 -- 5
 CREATE PROC spCountSubjectPass
@@ -305,41 +306,84 @@ BEGIN
 END
 spPrintListNameTeacher
 
+-- function phục vụ cho câu 7, 10
+-- chức năng : nhập vào TÊN học viên, xuất ra đtb lần thi [sau cùng]
+CREATE FUNCTION fnAvgStudent
+(
+	@TenHV NVARCHAR(50)
+)
+RETURNS FLOAT
+AS
+BEGIN
+	--DECLARE @TenHV NVARCHAR(50) = N'Trần Trung Chính'
+	DECLARE @DTB_LanThiSauCung FLOAT
+
+	SELECT @DTB_LanThiSauCung = SUM(dbo.KetQua.Diem*dbo.MonHoc.SoChi)/ SUM(dbo.MonHoc.SoChi)  FROM dbo.KetQua
+	LEFT JOIN dbo.MonHoc ON MonHoc.MaMonHoc = KetQua.MaMonHoc
+	LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
+	LEFT JOIN 
+	(
+	SELECT dbo.KetQua.MaMonHoc, MAX(LanThi) AS [Lần thi cuối] FROM dbo.KetQua
+	LEFT JOIN dbo.MonHoc ON MonHoc.MaMonHoc = KetQua.MaMonHoc
+	LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
+	WHERE TenHocVien = @TenHV
+	GROUP BY dbo.KetQua.MaMonHoc
+	) tb2 
+	ON tb2.MaMonHoc = KetQua.MaMonHoc
+	WHERE TenHocVien = @TenHV
+	AND dbo.KetQua.LanThi = tb2.[Lần thi cuối]
+
+	RETURN ROUND(@DTB_LanThiSauCung,2)
+END
+SELECT dbo.fnAvgStudent (N'Nguyễn Thùy Linh')
+
+-- function phục vụ cho câu 12
+-- chức năng : nhập vào MÃ học viên, xuất ra đtb lần thi [sau cùng]
+CREATE FUNCTION fnAvgStudent_2
+(
+	@MaHV NCHAR(10)
+)
+RETURNS FLOAT
+AS
+BEGIN
+	--DECLARE @TenHV NVARCHAR(50) = N'Trần Trung Chính'
+	DECLARE @DTB_LanThiSauCung FLOAT
+
+	SELECT @DTB_LanThiSauCung = SUM(dbo.KetQua.Diem*dbo.MonHoc.SoChi)/ SUM(dbo.MonHoc.SoChi)  FROM dbo.KetQua
+	LEFT JOIN dbo.MonHoc ON MonHoc.MaMonHoc = KetQua.MaMonHoc
+	LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
+	LEFT JOIN 
+	(
+	SELECT dbo.KetQua.MaMonHoc, MAX(LanThi) AS [Lần thi cuối] FROM dbo.KetQua
+	LEFT JOIN dbo.MonHoc ON MonHoc.MaMonHoc = KetQua.MaMonHoc
+	LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
+	WHERE MaHocVien = @MaHV
+	GROUP BY dbo.KetQua.MaMonHoc
+	) tb2 
+	ON tb2.MaMonHoc = KetQua.MaMonHoc
+	WHERE MaHocVien = @MaHV
+	AND dbo.KetQua.LanThi = tb2.[Lần thi cuối]
+
+	RETURN ROUND(@DTB_LanThiSauCung,2)
+END
+
 -- 7
 CREATE PROC spAvgStudent
 @TenHV NVARCHAR(50)
 AS
 BEGIN
-	--DECLARE @TenHV NVARCHAR(50) = N'Nguyễn Thùy Linh'
-	DECLARE @TongDiem_Tin FLOAT 
-	DECLARE @TongTin TINYINT
-	 
-	SELECT @TongDiem_Tin = SUM(dbo.KetQua.Diem * dbo.MonHoc.SoChi) FROM dbo.KetQua
-	LEFT JOIN dbo.MonHoc ON MonHoc.MaMonHoc = KetQua.MaMonHoc
-	LEFT JOIN dbo.HocVien ON dbo.HocVien.MaHocVien = dbo.KetQua.MaHV
+	DECLARE @DTB_LanThiSauCung FLOAT 
+	SELECT @DTB_LanThiSauCung = dbo.fnAvgStudent(dbo.HocVien.TenHocVien) FROM dbo.HocVien
+	LEFT JOIN dbo.KetQua ON KetQua.MaHV = HocVien.MaHocVien
 	WHERE TenHocVien = @TenHV
-	AND LanThi IN ( SELECT MAX(LanThi) FROM dbo.KetQua
-					LEFT JOIN dbo.MonHoc ON MonHoc.MaMonHoc = KetQua.MaMonHoc
-					LEFT JOIN dbo.HocVien ON dbo.HocVien.MaHocVien = dbo.KetQua.MaHV
-					WHERE TenHocVien = @TenHV )
 
-	SELECT @TongTin = SUM(dbo.MonHoc.SoChi) FROM dbo.MonHoc
-	LEFT JOIN dbo.KetQua ON KetQua.MaMonHoc = MonHoc.MaMonHoc
-	LEFT JOIN dbo.HocVien ON dbo.HocVien.MaHocVien = dbo.KetQua.MaHV
-	WHERE TenHocVien = @TenHV
-	AND LanThi IN ( SELECT MAX(LanThi) FROM dbo.MonHoc
-					LEFT JOIN dbo.KetQua ON KetQua.MaMonHoc = MonHoc.MaMonHoc
-					LEFT JOIN dbo.HocVien ON dbo.HocVien.MaHocVien = dbo.KetQua.MaHV
-					WHERE TenHocVien = @TenHV )
-
-	PRINT N'Điểm trung bình HV '+CAST(@TenHV AS NVARCHAR) + ' = ' + CAST(ROUND((@TongDiem_Tin/@TongTin),1) AS VARCHAR)
+	PRINT N'Điểm trung bình HV '+CAST(@TenHV AS NVARCHAR) + ' = ' + CAST(ROUND(@DTB_LanThiSauCung,1) AS VARCHAR)
 
 END
 spAvgStudent N'Nguyễn Thùy Linh'
 
-
 -- 8
-ALTER PROC spCountStudentPassSubject
+CREATE PROC spCountStudentPassSubject_Out
 @TenMonHoc NVARCHAR(50),
 @KetQua TINYINT OUT 
 AS
@@ -357,54 +401,215 @@ BEGIN
 						LEFT JOIN dbo.KetQua ON KetQua.MaHV = HocVien.MaHocVien
 						LEFT JOIN dbo.MonHoc ON MonHoc.MaMonHoc = KetQua.MaMonHoc
 						WHERE TinhTrang NOT LIKE N'Đang%')
-
-	PRINT  N' có ' + CAST(@KetQua AS VARCHAR) + N' sinh viên [đã từng] thi đậu môn ' + CAST(@TenMonHoc AS NVARCHAR)
+						-- đã từng thi đậu : nghĩa là không thuộc sv đang học --
 	--SELECT * FROM dbo.HocVien
 	--SELECT * FROM dbo.KetQua
 	--SELECT * FROM dbo.MonHoc
 END
 DECLARE @TenMonHoc NVARCHAR(50) = N'Cơ sở dữ liệu', @KetQua TINYINT 
-EXEC spCountStudentPassSubject @TenMonHoc, @KetQua OUT 
+EXEC spCountStudentPassSubject_Out @TenMonHoc, @KetQua OUT 
+PRINT  N' có ' + CAST(@KetQua AS VARCHAR) + N' sinh viên [đã từng] thi đậu môn ' + CAST(@TenMonHoc AS NVARCHAR)
+	
 
 -- 9
 CREATE PROC spPrintListDetailSubject
 AS
 BEGIN
-	
-	SELECT dbo.MonHoc.TenMonHoc AS [Tên MH], SUM(IIF( dbo.KetQua.LanThi = 2, 1, 0)) AS [Số SV vẫn chưa thi đậu] FROM dbo.MonHoc
-	LEFT JOIN dbo.KetQua ON KetQua.MaMonHoc = MonHoc.MaMonHoc
+	--c1 by Thầy
+
+	--SELECT dbo.MonHoc.TenMonHoc AS [Tên MH], SUM(IIF( dbo.KetQua.LanThi = 2, 1, 0)) AS [Số SV vẫn chưa thi đậu] FROM dbo.MonHoc
+	--LEFT JOIN dbo.KetQua ON KetQua.MaMonHoc = MonHoc.MaMonHoc
+	--LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
+	--WHERE dbo.KetQua.Diem < 5
+	--GROUP BY TenMonHoc 
+	-- * đề bài chưa yêu cầu nếu lần 1 cao thì lấy lần 1 *
+
+	--c2 ý tưởng ban đầu tìm ra lần thi cuối cùng sau đó left join theo vùng dữ liệu để ra yêu cầu
+
+	SELECT dbo.MonHoc.TenMonHoc AS [Tên MH], COUNT(dbo.HocVien.MaHocVien) AS [Số SV Thi lần 2 mà vẫn rớt] FROM dbo.KetQua
+	LEFT JOIN dbo.MonHoc ON MonHoc.MaMonHoc = KetQua.MaMonHoc
 	LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
+	LEFT JOIN 
+    (
+	SELECT dbo.KetQua.MaMonHoc,  MAX(LanThi) AS LanThiCuoi FROM dbo.KetQua
+	GROUP BY MaMonHoc
+	) tb2 ON tb2.MaMonHoc = KetQua.MaMonHoc
 	WHERE dbo.KetQua.Diem < 5
-	GROUP BY TenMonHoc 
-
-
-	SELECT * FROM dbo.HocVien
-	SELECT * FROM dbo.KetQua
-	SELECT * FROM dbo.MonHoc
+	AND dbo.KetQua.LanThi = tb2.LanThiCuoi
+	GROUP BY TenMonHoc
 END
 spPrintListDetailSubject
+--SELECT * FROM dbo.HocVien
+--SELECT * FROM dbo.KetQua
+--SELECT * FROM dbo.MonHoc
 
-
--- test
-
-CREATE TRIGGER trTest
-ON MonHoc
-FOR  DELETE
-AS 
+-- 10
+CREATE PROC spPrintStudentHighScoreAVG
+@MaLop NCHAR(10)
+AS
 BEGIN
+	--DECLARE @MaLop NCHAR(10) = 'LH000003'
 
-	--SELECT * FROM inserted
-	--SELECT * FROM deleted
+	-- Tái Sử dụng function dbo.fnAvgStudent
 
-	INSERT INTO test
-	SELECT * FROM deleted 
+	SELECT TOP 1 dbo.HocVien.TenHocVien AS [Tên học viên], dbo.fnAvgStudent(dbo.HocVien.TenHocVien) AS [Điểm trung bình] FROM dbo.HocVien
+	LEFT JOIN dbo.KetQua ON KetQua.MaHV = HocVien.MaHocVien
+	WHERE MaLop = @MaLop
+	GROUP BY TenHocVien
+	ORDER BY [Điểm trung bình] DESC 
+
+	--SELECT * FROM dbo.HocVien
+	--SELECT * FROM dbo.KetQua
+END
+spPrintStudentHighScoreAVG 'LH000002'
+
+-- 11
+SELECT * FROM dbo.HocVien
+SELECT * FROM dbo.LopHoc
+spCheckNewStudentInsert 'HV000001', N'Nguyễn Văn A', '1999-1-1', N'Đang họcn', 'LH000099'
+CREATE PROC spCheckNewStudentInsert
+@MaHocVien NCHAR(10),
+@TenHocVien NVARCHAR(50),
+@NgaySinh DATETIME,
+@TinhTrang NVARCHAR(50),
+@MaLop NCHAR(10)
+AS
+BEGIN
+	BEGIN TRY 
+	IF EXISTS ( SELECT * FROM dbo.HocVien
+				WHERE MaHocVien = @MaHocVien)
+			BEGIN
+				RAISERROR('Trùng mã học viên',10,1)
+				RETURN 
+			END
+	IF NOT EXISTS ( SELECT * FROM dbo.LopHoc
+					LEFT JOIN dbo.HocVien ON HocVien.MaLop = LopHoc.MaLop
+					WHERE dbo.LopHoc.MaLop = @MaLop)
+			BEGIN
+				RAISERROR('Lớp này chưa có',10,1)
+				RETURN
+			END
+	IF	EXISTS ( SELECT * FROM dbo.LopHoc
+				 LEFT JOIN dbo.HocVien ON HocVien.MaLop = LopHoc.MaLop
+				 WHERE dbo.LopHoc.MaLop = @MaLop
+				 AND SiSo >= 20)
+			BEGIN
+				RAISERROR('Lớp đã quá đông, không nhận thêm',10,1)
+				RETURN
+			END
+	IF NOT EXISTS ( SELECT * FROM dbo.HocVien
+				WHERE MaHocVien = @MaHocvien
+				AND @TinhTrang = N'Buộc thôi học'
+				OR @TinhTrang = N'Đang học'
+				OR @TinhTrang = N'Đã tốt nghiệp')
+			BEGIN
+				RAISERROR('Lỗi ! column TinhTrang',10,1)
+				RETURN
+			END
+	ELSE
+		INSERT INTO HocVien VALUES (@MaHocVien, @TenHocVien, @NgaySinh, @TinhTrang, @MaLop)
+		UPDATE dbo.LopHoc
+		SET SiSo += 1
+		WHERE MaLop = @MaLop
+		PRINT N'Thêm thành công'
+		RETURN
+	END TRY
+
+	BEGIN CATCH
+		RAISERROR(N'Lỗi chưa phát hiện',15,1)		 
+		ROLLBACK
+	END CATCH
+END
+
+--12
+SELECT * FROM dbo.LopHoc
+SELECT * FROM dbo.HocVien
+SELECT * FROM dbo.KetQua
+CREATE PROC spDeleteStudentBadScoreAVG
+--@MaHocVien NCHAR(10)
+AS
+BEGIN
+	DECLARE @HocVienDiemKem NVARCHAR(MAX) 
+	IF NOT EXISTS (
+				SELECT DISTINCT dbo.HocVien.TenHocVien, dbo.fnAvgStudent(dbo.HocVien.TenHocVien) AS 'DTB <= 6' FROM dbo.KetQua
+				LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
+				WHERE dbo.fnAvgStudent(dbo.HocVien.TenHocVien) <= 6
+				GROUP BY TenHocVien )
+			BEGIN
+				PRINT N'Không có học viên nào DTB <= 6'
+			END
+	ELSE	
+		BEGIN
+			SELECT DISTINCT dbo.HocVien.TenHocVien, dbo.fnAvgStudent(dbo.HocVien.TenHocVien) AS 'DTB <= 6' FROM dbo.KetQua
+			LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
+			WHERE dbo.fnAvgStudent(dbo.HocVien.TenHocVien) <= 6
+			GROUP BY TenHocVien
+		END
+		
+		DELETE dbo.KetQua
+		WHERE MaHV IN ( SELECT dbo.KetQua.MaHV
+						FROM dbo.KetQua
+						LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
+						WHERE dbo.fnAvgStudent_2(dbo.HocVien.MaHocVien) <= 6)	
+
+		DELETE dbo.HocVien
+		WHERE MaHocVien IN ( SELECT dbo.HocVien.MaHocVien
+							 FROM dbo.HocVien
+							 WHERE dbo.fnAvgStudent_2(dbo.HocVien.MaHocVien) <= 6)
+		
+		UPDATE dbo.LopHoc
+		SET SiSo -= 1
+		WHERE MaLop IN ( SELECT	*
+						 FROM dbo.LopHoc
+						 LEFT JOIN dbo.HocVien ON HocVien.MaLop = LopHoc.MaLop
+						 LEFT JOIN dbo.KetQua ON KetQua.MaHV = HocVien.MaHocVien
+						 WHERE dbo.fnAvgStudent_2(dbo.HocVien.MaHocVien) <= 6)
 
 END
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- test trigger  với 2 bảng inserted & deleted
+-- insert into select : chèn dữ liệu vào 1 bảng có sẵn
+-- select into : tạo bảng sao từ bảng nào đó
+-- After tương tự như for trong trigger
+CREATE TRIGGER trTest
+ON MonHoc
+AFTER DELETE AS 
+	BEGIN
+
+		--SELECT * FROM inserted
+		--SELECT * FROM deleted
+
+		INSERT INTO test
+		SELECT * FROM Deleted
+
+	END
 
 
 SELECT * INTO test
 FROM dbo.MonHoc
 WHERE 1 > 2
+
+
 
 
 
