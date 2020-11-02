@@ -8,7 +8,7 @@ CREATE TABLE GiaoVien
 	MaGV NCHAR(10) PRIMARY KEY,
 	TenGV NVARCHAR(50),
 	NgaySinh DATETIME,
-	GioiTinh NVARCHAR(100),
+	GioiTinh NVARCHAR(10),
 	DienThoai NCHAR(10),
 	MaGVQuanLi NCHAR(10)
 )
@@ -177,6 +177,16 @@ INSERT INTO KetQua VALUES ('HV000005', 'MH00009', 1, 1)
 INSERT INTO KetQua VALUES ('HV000005', 'MH00009', 2, 7)
 INSERT INTO KetQua VALUES ('HV000005', 'MH00010', 1, 1)
 INSERT INTO KetQua VALUES ('HV000005', 'MH00010', 2, 3.5)
+INSERT INTO KetQua VALUES ('HV000006', 'MH00010', 1, 2.5)
+INSERT INTO KetQua VALUES ('HV000006', 'MH00010', 2, 3.3)
+INSERT INTO KetQua VALUES ('HV000007', 'MH00010', 1, 3.5)
+INSERT INTO KetQua VALUES ('HV000007', 'MH00010', 2, 1.5)
+INSERT INTO KetQua VALUES ('HV000008', 'MH00010', 1, 2.5)
+INSERT INTO KetQua VALUES ('HV000008', 'MH00010', 2, 6.5)
+INSERT INTO KetQua VALUES ('HV000009', 'MH00010', 1, 4.5)
+INSERT INTO KetQua VALUES ('HV000009', 'MH00010', 2, 5.5)
+INSERT INTO KetQua VALUES ('HV000010', 'MH00010', 1, 3.5)
+INSERT INTO KetQua VALUES ('HV000010', 'MH00010', 2, 6.5)
 GO
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- C. BÀI TẬP STORED PROCEDURE
@@ -306,7 +316,7 @@ BEGIN
 END
 spPrintListNameTeacher
 
--- function phục vụ cho câu 7, 10
+-- function phục vụ cho câu 7, 10, 12
 -- chức năng : nhập vào TÊN học viên, xuất ra đtb lần thi [sau cùng]
 CREATE FUNCTION fnAvgStudent
 (
@@ -336,36 +346,6 @@ BEGIN
 	RETURN ROUND(@DTB_LanThiSauCung,2)
 END
 SELECT dbo.fnAvgStudent (N'Nguyễn Thùy Linh')
-
--- function phục vụ cho câu 12
--- chức năng : nhập vào MÃ học viên, xuất ra đtb lần thi [sau cùng]
-CREATE FUNCTION fnAvgStudent_2
-(
-	@MaHV NCHAR(10)
-)
-RETURNS FLOAT
-AS
-BEGIN
-	--DECLARE @TenHV NVARCHAR(50) = N'Trần Trung Chính'
-	DECLARE @DTB_LanThiSauCung FLOAT
-
-	SELECT @DTB_LanThiSauCung = SUM(dbo.KetQua.Diem*dbo.MonHoc.SoChi)/ SUM(dbo.MonHoc.SoChi)  FROM dbo.KetQua
-	LEFT JOIN dbo.MonHoc ON MonHoc.MaMonHoc = KetQua.MaMonHoc
-	LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
-	LEFT JOIN 
-	(
-	SELECT dbo.KetQua.MaMonHoc, MAX(LanThi) AS [Lần thi cuối] FROM dbo.KetQua
-	LEFT JOIN dbo.MonHoc ON MonHoc.MaMonHoc = KetQua.MaMonHoc
-	LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
-	WHERE MaHocVien = @MaHV
-	GROUP BY dbo.KetQua.MaMonHoc
-	) tb2 
-	ON tb2.MaMonHoc = KetQua.MaMonHoc
-	WHERE MaHocVien = @MaHV
-	AND dbo.KetQua.LanThi = tb2.[Lần thi cuối]
-
-	RETURN ROUND(@DTB_LanThiSauCung,2)
-END
 
 -- 7
 CREATE PROC spAvgStudent
@@ -401,7 +381,7 @@ BEGIN
 						LEFT JOIN dbo.KetQua ON KetQua.MaHV = HocVien.MaHocVien
 						LEFT JOIN dbo.MonHoc ON MonHoc.MaMonHoc = KetQua.MaMonHoc
 						WHERE TinhTrang NOT LIKE N'Đang%')
-						-- đã từng thi đậu : nghĩa là không thuộc sv đang học --
+						-- đã từng thi đậu : nghĩa là không thuộc sv đang học 
 	--SELECT * FROM dbo.HocVien
 	--SELECT * FROM dbo.KetQua
 	--SELECT * FROM dbo.MonHoc
@@ -466,7 +446,7 @@ spPrintStudentHighScoreAVG 'LH000002'
 -- 11
 SELECT * FROM dbo.HocVien
 SELECT * FROM dbo.LopHoc
-spCheckNewStudentInsert 'HV000001', N'Nguyễn Văn A', '1999-1-1', N'Đang họcn', 'LH000099'
+spCheckNewStudentInsert 'HV000sg0019', N'Nguyễn Văn A', '1999-1-1', N'Đang họcf', 'LH0000f04'
 CREATE PROC spCheckNewStudentInsert
 @MaHocVien NCHAR(10),
 @TenHocVien NVARCHAR(50),
@@ -522,50 +502,236 @@ BEGIN
 END
 
 --12
+
 SELECT * FROM dbo.LopHoc
-SELECT * FROM dbo.HocVien
 SELECT * FROM dbo.KetQua
+SELECT * FROM dbo.HocVien
+
 CREATE PROC spDeleteStudentBadScoreAVG
 --@MaHocVien NCHAR(10)
 AS
 BEGIN
-	DECLARE @HocVienDiemKem NVARCHAR(MAX) 
+	DECLARE @diem FLOAT
+	SET @diem = 6
+	 
 	IF NOT EXISTS (
 				SELECT DISTINCT dbo.HocVien.TenHocVien, dbo.fnAvgStudent(dbo.HocVien.TenHocVien) AS 'DTB <= 6' FROM dbo.KetQua
 				LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
-				WHERE dbo.fnAvgStudent(dbo.HocVien.TenHocVien) <= 6
+				WHERE dbo.fnAvgStudent(dbo.HocVien.TenHocVien) <= @diem
 				GROUP BY TenHocVien )
 			BEGIN
-				PRINT N'Không có học viên nào DTB <= 6'
+				PRINT N'Không có học viên nào DTB <= ' + CAST(@diem AS VARCHAR)
 			END
 	ELSE	
 		BEGIN
-			SELECT DISTINCT dbo.HocVien.TenHocVien, dbo.fnAvgStudent(dbo.HocVien.TenHocVien) AS 'DTB <= 6' FROM dbo.KetQua
+			DECLARE @check BIT = 1
+			SELECT DISTINCT dbo.HocVien.TenHocVien, dbo.fnAvgStudent(dbo.HocVien.TenHocVien) AS 'DTB <= 3.5' FROM dbo.KetQua
 			LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
-			WHERE dbo.fnAvgStudent(dbo.HocVien.TenHocVien) <= 6
+			WHERE dbo.fnAvgStudent(dbo.HocVien.TenHocVien) <= @diem
 			GROUP BY TenHocVien
+
+			IF (@check = 1)
+				BEGIN
+					-- dùng bảng tạm để update
+					SELECT dbo.HocVien.MaLop ,COUNT(dbo.LopHoc.MaLop ) AS [SL] INTO #TEMP 
+					FROM dbo.HocVien
+					LEFT JOIN dbo.LopHoc ON LopHoc.MaLop = HocVien.MaLop
+					WHERE dbo.fnAvgStudent(dbo.HocVien.TenHocVien) <= @diem
+					GROUP BY HocVien.MaLop
+
+					UPDATE dbo.LopHoc
+					SET dbo.LopHoc.SiSo = SiSo - #TEMP.SL
+					FROM #TEMP
+					WHERE dbo.LopHoc.MaLop = #TEMP.MaLop
+				END 
 		END
-		
+
 		DELETE dbo.KetQua
-		WHERE MaHV IN ( SELECT dbo.KetQua.MaHV
-						FROM dbo.KetQua
-						LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
-						WHERE dbo.fnAvgStudent_2(dbo.HocVien.MaHocVien) <= 6)	
+		WHERE MaHV IN (SELECT dbo.KetQua.MaHV
+					   FROM dbo.KetQua
+					   LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
+					   WHERE dbo.fnAvgStudent(HocVien.TenHocVien) <= @diem)
+		
+		-- y/c phải có kết quả đầy đủ từ tất cả sv hoặc để dữ liệu null  => câu truy vấn đúng 
 
 		DELETE dbo.HocVien
-		WHERE MaHocVien IN ( SELECT dbo.HocVien.MaHocVien
-							 FROM dbo.HocVien
-							 WHERE dbo.fnAvgStudent_2(dbo.HocVien.MaHocVien) <= 6)
-		
-		UPDATE dbo.LopHoc
-		SET SiSo -= 1
-		WHERE MaLop IN ( SELECT	*
-						 FROM dbo.LopHoc
-						 LEFT JOIN dbo.HocVien ON HocVien.MaLop = LopHoc.MaLop
-						 LEFT JOIN dbo.KetQua ON KetQua.MaHV = HocVien.MaHocVien
-						 WHERE dbo.fnAvgStudent_2(dbo.HocVien.MaHocVien) <= 6)
-
+		WHERE dbo.HocVien.MaHocVien NOT IN ( SELECT dbo.KetQua.MaHV
+											 FROM dbo.KetQua )
 END
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- C. BÀI TẬP TRIGGER
+-- 1
+CREATE TRIGGER trStudentInsertUpdate ON HocVien
+FOR UPDATE, INSERT
+AS 
+BEGIN
+	DECLARE @tinhtrang NVARCHAR(50)
+	SELECT @tinhtrang = TinhTrang FROM inserted
+	IF (@tinhtrang NOT IN (N'Đang học', N'Đã tốt nghiệp', N'Buộc thôi học'))
+	BEGIN
+		RAISERROR(N'Đang học, đã tốt nghiệp hoặc buộc thôi học', 16, 1)
+		ROLLBACK
+	END
+	
+END
+
+-- 2
+CREATE TRIGGER trTeacherInsertUpdate ON GiaoVien
+FOR UPDATE, INSERT
+AS
+BEGIN
+	DECLARE @gt NVARCHAR(10)
+	SELECT @gt = GioiTinh FROM inserted
+	IF (@gt NOT IN (N'Nam', N'Nữ'))
+	BEGIN
+		RAISERROR(N'Phải là nam hay nữ', 16, 1)
+		ROLLBACK  
+	END
+END
+
+-- 3
+INSERT INTO HocVien VALUES 
+('HV000099', N'Nguyễn A', '2000-2-11', N'Đang học', 'LH000005')
+CREATE TRIGGER trStudentYearOld ON HocVien
+FOR UPDATE, INSERT
+AS
+BEGIN
+	-- C1
+	--DECLARE @ngaysinh DATETIME
+	--DECLARE @tuoi INT 
+
+	--SELECT @ngaysinh = NgaySinh FROM inserted
+	--SELECT @tuoi = CAST(YEAR(GETDATE()) AS INT) - CAST(YEAR(@ngaysinh) AS INT)
+	--IF (@tuoi <= 18)
+	--	BEGIN
+	--		RAISERROR(N'Chưa đủ 18 tuổi', 16, 1)
+	--		ROLLBACK
+	--	END
+	-- C2
+	IF EXISTS ( SELECT * 
+				FROM inserted
+				WHERE YEAR(GETDATE()) - YEAR(NgaySinh) <= 18 ) 
+		BEGIN
+			RAISERROR(N'Chưa đủ 18 tuổi', 16, 1)
+			ROLLBACK
+		END
+END
+
+-- 4
+UPDATE LopHoc
+SET SiSo = 1, LopTruong = 'HV000002', GVQuanLi = 'GV00001', NamBatDau = '2005', NamKetThuc = '2006'
+WHERE MaLop = 'LH000001'
+CREATE TRIGGER trClassYear ON LopHoc
+FOR UPDATE, INSERT 
+AS 
+BEGIN
+	-- C1 như Câu 3 nhưng vẫn lỗi chưa hiểu nguyên nhân
+	-- C2
+	IF EXISTS ( SELECT *
+				FROM inserted
+				WHERE NamBatDau > NamKetThuc )
+		BEGIN
+			RAISERROR(N'Năm bắt đầu phải nhỏ hơn năm kết thúc', 16, 1)
+			ROLLBACK
+		END 
+END
+
+-- 5
+CREATE TRIGGER trClassStudentSiSo ON LopHoc
+FOR UPDATE, INSERT
+AS 
+BEGIN
+	IF NOT EXISTS ( SELECT *
+					FROM inserted
+					WHERE SiSo BETWEEN 1 AND 20)
+				BEGIN
+					RAISERROR(N'Lớp tối thiểu 1 học viên, tối đa 20 học viên', 16, 1)
+					ROLLBACK
+				END
+END
+
+-- 6
+-- tức là phải có một MaGV duy nhất đang dạy trong bảng GiaoVien_Day_MonHoc
+CREATE TRIGGER trTeacherTeachSubjects ON GiaoVien_Day_MonHoc
+FOR DELETE
+AS 
+BEGIN
+	IF NOT EXISTS ( SELECT MaGV
+					FROM deleted
+					WHERE deleted.MaGV IN ( SELECT gvd.MaGV
+											FROM dbo.GiaoVien_Day_MonHoc gvd))
+	
+		BEGIN
+			RAISERROR(N'Một GV phải dạy ít nhất 1 môn', 16, 1)
+			ROLLBACK
+		END
+END
+
+-- 7
+CREATE TRIGGER trTeacherYearOld ON GiaoVien
+FOR UPDATE, INSERT
+AS	
+BEGIN
+	IF NOT EXISTS ( SELECT *
+					FROM inserted 
+					WHERE YEAR(GETDATE()) - YEAR(NgaySinh) BETWEEN 22 AND 25)
+				BEGIN
+					RAISERROR(N'Tuổi GV từ 22 tới 25', 16, 1)
+					ROLLBACK
+				END
+END
+
+-- 8
+CREATE TRIGGER trClassMonitorBelongTo ON LopHoc
+FOR INSERT, UPDATE 
+AS	
+BEGIN
+	IF NOT EXISTS ( SELECT *
+					FROM inserted
+					WHERE inserted.LopTruong IN ( SELECT MaHocVien
+												  FROM dbo.HocVien))
+												  
+				BEGIN
+					RAISERROR(N'Lớp trưởng phải là học viên', 16, 1)
+					ROLLBACK
+				END
+END
+
+-- 9 Mỗi giáo viên chỉ được quản lý tối đa hai lớp học
+-- tức là nếu đếm GVQuanLi lên 3 thì roolback
+CREATE TRIGGER trClassTeacherManage ON LopHoc
+FOR INSERT, UPDATE
+AS 
+BEGIN
+	IF EXISTS ( SELECT dbo.LopHoc.GVQuanLi, COUNT(dbo.LopHoc.MaLop) FROM dbo.LopHoc
+				GROUP BY dbo.LopHoc.GVQuanLi
+				HAVING	COUNT(dbo.LopHoc.MaLop) > 2)
+			   
+		BEGIN
+			RAISERROR(N'Mỗi GV chỉ được quản 2 lớp', 16, 1)
+			ROLLBACK
+		END
+END
+
+-- 10
+CREATE TRIGGER trTeacherManageClass ON GiaoVien
+FOR UPDATE, INSERT
+AS 
+BEGIN
+	IF EXISTS ( SELECT dbo.GiaoVien.MaGVQuanLi, COUNT(dbo.GiaoVien.MaGV)  
+				FROM dbo.GiaoVien
+				GROUP BY MaGVQuanLi
+				HAVING  COUNT(dbo.GiaoVien.MaGV) > 3)
+		BEGIN
+			RAISERROR('GV chỉ được quản lí 3 người', 16, 1)
+			ROLLBACK
+		END
+END
+
+-- 11
+SELECT * FROM dbo.MonHoc
+SELECT * FROM dbo.HocVien
+
 
 
 
