@@ -190,7 +190,7 @@ INSERT INTO KetQua VALUES ('HV000010', 'MH00010', 2, 6.5)
 GO
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- C. BÀI TẬP STORED PROCEDURE
--- 1
+-- 1. Cho biết họ tên giáo viên quản lý lớp LH000001.
 CREATE PROC spGetNameTeacher
 AS
 BEGIN
@@ -204,7 +204,7 @@ BEGIN
 END
 spGetNameTeacher
 
--- 2
+-- 2. Cho biết họ tên các học viên đã từng thi đậu môn “Cơ sở dữ liệu”
 CREATE PROC spGetNameStudent
 AS
 BEGIN
@@ -221,7 +221,8 @@ BEGIN
 END
 spGetNameStudent
 
--- 3
+-- 3. Nhập vào một mã lớp, cho biết sỉ số lớp, họ tên giáo viên quản lý lớp và họ tên lớp trưởng.
+-- C1
 CREATE PROC spGetInfoClass_1
 @MaLop NCHAR(10)
 AS
@@ -237,6 +238,7 @@ BEGIN
 END
 spGetInfoClass_1 'LH000001'
 
+-- C2
 CREATE PROC spGetInfoClass_2
 @MaLop NCHAR(10)
 AS
@@ -262,7 +264,8 @@ BEGIN
 END
 spGetInfoClass_2 'LH000001'
 
--- 4
+-- 4. Nhập vào một mã lớp, xuất ra họ tên giáo viên quản lý lớp dưới dạng tham số output và
+-- in ra kết quả bằng lệnh print.
 CREATE PROC spPrintNameTeacher_Out
 @MaLop NCHAR(10),
 @ketqua NVARCHAR(20) OUT
@@ -282,7 +285,8 @@ EXEC spPrintNameTeacher_Out @MaLop, @ketqua OUT
 PRINT N'Họ tên GV quản lí lớp : '+ CAST(@MaLop AS VARCHAR) + '-> ' + CAST(@ketqua AS NVARCHAR)
 
 
--- 5
+-- 5. Nhập vào họ tên một học viên, đếm số môn mà học viên này đã thi đậu. Điều kiện thi
+-- đậu: điểm lần thi sau cùng của môn này >= 5.
 CREATE PROC spCountSubjectPass
 @TenHocVien NVARCHAR(50)
 AS
@@ -303,7 +307,8 @@ BEGIN
 END
 spCountSubjectPass N'Nguyễn Thùy Linh'
 
--- 6
+-- 6. Xuất ra danh sách họ tên các giáo viên, ứng với mỗi giáo viên cho biết có số môn mà
+-- các giáo viên này đã được phân công giảng dạy.
 CREATE PROC spPrintListNameTeacher
 AS
 BEGIN
@@ -347,7 +352,9 @@ BEGIN
 END
 SELECT dbo.fnAvgStudent (N'Nguyễn Thùy Linh')
 
--- 7
+-- 7. Nhận vào tên một học viên, cho biết điểm trung bình của học viên đó. Điểm trung bình
+-- được tính trên điểm thi lần thi sau cùng của học viên theo công thức:
+-- Điểm trung bình = ∑(Điểm * Số tín chỉ) / ∑Số tín chỉ
 CREATE PROC spAvgStudent
 @TenHV NVARCHAR(50)
 AS
@@ -362,7 +369,8 @@ BEGIN
 END
 spAvgStudent N'Nguyễn Thùy Linh'
 
--- 8
+-- 8. Nhận vào một tên môn học, cho biết có bao nhiêu học viên đã từng thi đậu môn này.
+-- Xuất ra dưới dạng tham số output và in ra kết quả bằng lệnh print.
 CREATE PROC spCountStudentPassSubject_Out
 @TenMonHoc NVARCHAR(50),
 @KetQua TINYINT OUT 
@@ -391,7 +399,8 @@ EXEC spCountStudentPassSubject_Out @TenMonHoc, @KetQua OUT
 PRINT  N' có ' + CAST(@KetQua AS VARCHAR) + N' sinh viên [đã từng] thi đậu môn ' + CAST(@TenMonHoc AS NVARCHAR)
 	
 
--- 9
+-- 9. Xuất ra danh sách tên các môn học, ứng với mỗi môn cho biết số học viên vẫn chưa thi
+-- đậu môn đó. Học viên chưa thi đậu khi điểm lần thi cuối cùng môn đó <5.
 CREATE PROC spPrintListDetailSubject
 AS
 BEGIN
@@ -423,7 +432,8 @@ spPrintListDetailSubject
 --SELECT * FROM dbo.KetQua
 --SELECT * FROM dbo.MonHoc
 
--- 10
+-- 10. Nhận vào một mã lớp, cho biết họ tên học viên có điểm trung bình cao nhất của lớp đó.
+-- Điều kiện và công thức tính điểm trung bình tương tự câu 6.
 CREATE PROC spPrintStudentHighScoreAVG
 @MaLop NCHAR(10)
 AS
@@ -443,7 +453,16 @@ BEGIN
 END
 spPrintStudentHighScoreAVG 'LH000002'
 
--- 11
+-- 11. Viết stored procedure nhận vào thông tin một học viên mới và đưa học viên vào CSDL
+-- theo quy trình sau:
+--  B1: Kiểm tra nếu mã học viên đã có  thông báo lỗi
+--  B2: Kiểm tra nếu học viên được xếp vào lớp chưa tồn tại  thông báo lỗi
+--  B3: Kiểm tra nếu học viên được xếp vào lớp có nhiều hơn 20 học viên  thông báo
+-- lớp đã quá đông và không thể nhận thêm học viên
+--  B4: Kiểm tra nếu tình trạng không phải là một trong ba tình trạng „đang học‟, „đã
+-- tốt nghiệp‟ hoặc „bị thôi học‟  thông báo lỗi
+--  B5: Thêm học viên vào
+--  B6: Tăng cột sĩ số trong bảng lớp insert học viên thêm 1
 SELECT * FROM dbo.HocVien
 SELECT * FROM dbo.LopHoc
 spCheckNewStudentInsert 'HV000sg0019', N'Nguyễn Văn A', '1999-1-1', N'Đang họcf', 'LH0000f04'
@@ -501,8 +520,13 @@ BEGIN
 	END CATCH
 END
 
---12
-
+-- 12. Viết stored procedure xóa các học viên có điểm trung bình <= 3.5 ra khỏi CSDL theo quy trình :
+-- Quản trị Cơ sở dữ liệu
+--  B1 : tìm những học có đtb <= 3.5
+--  Ứng với mỗi học viên
+-- o Xóa các tham chiếu liên quan đến học viên này
+-- o Bớt đi giá trị cột sĩ số của lớp học viên theo học đi 1
+-- o Xóa học viên
 SELECT * FROM dbo.LopHoc
 SELECT * FROM dbo.KetQua
 SELECT * FROM dbo.HocVien
@@ -560,7 +584,8 @@ BEGIN
 END
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- C. BÀI TẬP TRIGGER
--- 1
+-- 1. Cột tình trạng trong bảng học viên nếu có giá trị chỉ có thể là 'đang học', 'đã tốt nghiệp'
+-- hoặc 'buộc thôi học'
 CREATE TRIGGER trStudentInsertUpdate ON HocVien
 FOR UPDATE, INSERT
 AS 
@@ -575,7 +600,7 @@ BEGIN
 	
 END
 
--- 2
+-- 2. Cột giới tính trong bảng giáo viên nếu có giá trị chỉ có thể là „nam‟ hoặc „nữ
 CREATE TRIGGER trTeacherInsertUpdate ON GiaoVien
 FOR UPDATE, INSERT
 AS
@@ -589,7 +614,7 @@ BEGIN
 	END
 END
 
--- 3
+-- 3. Tuổi của học viên phải từ 18 trở lên.
 INSERT INTO HocVien VALUES 
 ('HV000099', N'Nguyễn A', '2000-2-11', N'Đang học', 'LH000005')
 CREATE TRIGGER trStudentYearOld ON HocVien
@@ -617,7 +642,7 @@ BEGIN
 		END
 END
 
--- 4
+-- 4. Năm bắt đầu của một lớp học luôn phải nhỏ hơn năm kết thúc
 UPDATE LopHoc
 SET SiSo = 1, LopTruong = 'HV000002', GVQuanLi = 'GV00001', NamBatDau = '2005', NamKetThuc = '2006'
 WHERE MaLop = 'LH000001'
@@ -636,7 +661,7 @@ BEGIN
 		END 
 END
 
--- 5
+-- 5. Một lớp học phải có tổi thiểu một học viên và tối đa 20 học viên
 CREATE TRIGGER trClassStudentSiSo ON LopHoc
 FOR UPDATE, INSERT
 AS 
@@ -650,7 +675,7 @@ BEGIN
 				END
 END
 
--- 6
+-- 6. Một giáo viên phải có khả năng giảng dạy ít nhất một môn
 -- tức là phải có một MaGV duy nhất đang dạy trong bảng GiaoVien_Day_MonHoc
 CREATE TRIGGER trTeacherTeachSubjects ON GiaoVien_Day_MonHoc
 FOR DELETE
@@ -667,7 +692,7 @@ BEGIN
 		END
 END
 
--- 7
+-- 7. Tuổi của giáo viên phải nằm trong khoảng 22 đến 55.
 CREATE TRIGGER trTeacherYearOld ON GiaoVien
 FOR UPDATE, INSERT
 AS	
@@ -681,7 +706,7 @@ BEGIN
 				END
 END
 
--- 8
+-- 8.  Lớp trưởng phải là một học viên thuộc về lớp.
 CREATE TRIGGER trClassMonitorBelongTo ON LopHoc
 FOR INSERT, UPDATE 
 AS	
@@ -728,9 +753,63 @@ BEGIN
 		END
 END
 
--- 11
-SELECT * FROM dbo.MonHoc
-SELECT * FROM dbo.HocVien
+-- 11. Học viên thuộc về một lớp chỉ được học những môn có mở ra cho lớp đó.
+-- tức trong bản phân công phải có mã MH
+SELECT * FROM dbo.PhanCong
+SELECT * FROM dbo.KetQua
+
+ALTER TRIGGER trCheckSubjectStudent ON KetQua
+FOR INSERT, UPDATE
+AS	
+BEGIN
+	
+	IF EXISTS ( SELECT inserted.MaMonHoc FROM inserted
+				LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = inserted.MaHV
+				LEFT JOIN dbo.LopHoc ON LopHoc.MaLop = HocVien.MaLop
+				WHERE inserted.MaMonHoc NOT IN ( SELECT dbo.PhanCong.MaMH
+												FROM dbo.PhanCong ))
+			BEGIN
+			    RAISERROR(N'Môn này chưa mở', 16, 1)
+				ROLLBACK
+			END	
+END
+
+-- 12. Giáo viên chỉ được dạy những môn mà họ có khả năng giảng dạy
+SELECT * FROM dbo.GiaoVien_Day_MonHoc
+SELECT * FROM dbo.PhanCong
+
+ALTER TRIGGER trSubjectTeacherTeach ON PhanCong
+FOR UPDATE, INSERT
+AS 
+BEGIN
+	IF NOT EXISTS ( SELECT dbo.GiaoVien_Day_MonHoc.MaGV, dbo.GiaoVien_Day_MonHoc.MaMH 
+					FROM dbo.GiaoVien_Day_MonHoc
+					WHERE MaMH IN ( SELECT inserted.MaMH
+									FROM inserted
+									WHERE inserted.MaGV = dbo.GiaoVien_Day_MonHoc.MaGV))
+			BEGIN
+			    RAISERROR(N'Môn này GV không có khả năng dạy', 16, 1)
+				ROLLBACK
+			END				
+END
+
+-- 13. Thêm cột SoMonDaGD (số môn đã giảng dạy) vào bảng giáo viên. Quy định giá trị
+-- trong cột này phải tương ứng với số môn mà giáo viên đã được phân công giảng dạy
+
+ALTER TABLE GiaoVien ADD SoMonDaGD INT
+GO
+
+CREATE TRIGGER trTeacherAutoUpdateCountSubject ON GiaoVien
+FOR UPDATE, INSERT
+AS 
+BEGIN
+	DECLARE @count INT 
+    SELECT @count = COUNT(dbo.GiaoVien.MaGV) 
+	FROM dbo.GiaoVien
+
+
+END
+
 
 
 
@@ -774,15 +853,3 @@ AFTER DELETE AS
 SELECT * INTO test
 FROM dbo.MonHoc
 WHERE 1 > 2
-
-
-
-
-
-
-
-
-
-
-
-
