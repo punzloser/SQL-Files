@@ -205,19 +205,18 @@ END
 spGetNameTeacher
 
 -- 2. Cho biết họ tên các học viên đã từng thi đậu môn “Cơ sở dữ liệu” (chưa đúng sửa lại sau)
-CREATE PROC spGetNameStudent
+ALTER PROC spGetNameStudent
 AS
 BEGIN
-	DECLARE @kq NVARCHAR(20)
+	DECLARE @kq NVARCHAR(60)
 
-	SELECT @kq = hv.TenHocVien FROM dbo.HocVien hv
-	LEFT JOIN dbo.KetQua kq ON hv.MaHocVien = kq.MaHV
-	LEFT JOIN dbo.MonHoc mh ON mh.MaMonHoc = kq.MaMonHoc
-	WHERE mh.TenMonHoc = N'Cơ sở dữ liệu'
-	AND kq.Diem >= 5
-	AND hv.TinhTrang NOT LIKE N'Đang%'
+	SELECT dbo.HocVien.TenHocVien AS 'Tên HV đã từng thi đậu' FROM dbo.HocVien
+	LEFT JOIN dbo.KetQua ON KetQua.MaHV = HocVien.MaHocVien
+	LEFT JOIN dbo.MonHoc ON MonHoc.MaMonHoc = KetQua.MaMonHoc
+	WHERE TenMonHoc = N'Cơ sở dữ liệu'
+	AND Diem >= 5
 
-	PRINT N'Họ tên học viên [đã từng] thi đậu CSDL : '+ CHAR(10) + CAST(@kq AS NVARCHAR)
+	PRINT N'Họ tên học viên [đã từng] thi đậu CSDL : '+ CHAR(10) + @kq
 END
 spGetNameStudent
 
@@ -371,7 +370,7 @@ spAvgStudent N'Nguyễn Thùy Linh'
 
 -- 8. Nhận vào một tên môn học, cho biết có bao nhiêu học viên đã từng thi đậu môn này.
 -- Xuất ra dưới dạng tham số output và in ra kết quả bằng lệnh print.
-CREATE PROC spCountStudentPassSubject_Out
+ALTER PROC spCountStudentPassSubject_Out
 @TenMonHoc NVARCHAR(50),
 @KetQua TINYINT OUT 
 AS
@@ -384,17 +383,12 @@ BEGIN
 	LEFT JOIN dbo.MonHoc ON MonHoc.MaMonHoc = KetQua.MaMonHoc
 	WHERE TenMonHoc = @TenMonHoc
 	AND Diem >= 5
-	AND TinhTrang IN ( SELECT dbo.HocVien.TinhTrang
-						FROM dbo.HocVien
-						LEFT JOIN dbo.KetQua ON KetQua.MaHV = HocVien.MaHocVien
-						LEFT JOIN dbo.MonHoc ON MonHoc.MaMonHoc = KetQua.MaMonHoc
-						WHERE TinhTrang NOT LIKE N'Đang%')
-						-- đã từng thi đậu : nghĩa là không thuộc sv đang học 
+	AND LanThi != 2
 	--SELECT * FROM dbo.HocVien
 	--SELECT * FROM dbo.KetQua
 	--SELECT * FROM dbo.MonHoc
 END
-DECLARE @TenMonHoc NVARCHAR(50) = N'Cơ sở dữ liệu', @KetQua TINYINT 
+DECLARE @TenMonHoc NVARCHAR(50) = N'Hệ thống thông minh', @KetQua TINYINT 
 EXEC spCountStudentPassSubject_Out @TenMonHoc, @KetQua OUT 
 PRINT  N' có ' + CAST(@KetQua AS VARCHAR) + N' sinh viên [đã từng] thi đậu môn ' + CAST(@TenMonHoc AS NVARCHAR)
 	
@@ -1537,13 +1531,106 @@ END
 SELECT dbo.fnTuoiHV(N'Nguyễn Thùy Linh')
 
 --2. Nhập vào tên một học viên cho biết số môn học viên này đã từng thi rớt
-SELECT COUNT(dbo.KetQua.MaMonHoc) FROM dbo.KetQua
-LEFT JOIN dbo.HocVien ON KetQua.MaHV = HocVien.MaHocVien
-LEFT JOIN 
-		   (SELECT dbo.KetQua.MaMonHoc, MAX(dbo.KetQua.LanThi) AS LanThiCuoi FROM dbo.KetQua
-		    LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
-			WHERE  TenHocVien = N'Trần Trung Chính'
-			GROUP BY MaMonHoc) tb2 ON tb2.MaMonHoc = KetQua.MaMonHoc
-WHERE dbo.HocVien.TenHocVien = N'Trần Trung Chính'
-AND dbo.KetQua.LanThi = tb2.LanThiCuoi
-AND Diem < 5
+
+ALTER FUNCTION fnCountMonRot
+(
+	@TenHV NVARCHAR(50)
+)
+RETURNS TINYINT
+AS
+BEGIN
+	DECLARE @count TINYINT
+    SELECT @count = COUNT(dbo.MonHoc.MaMonHoc) FROM dbo.KetQua
+	LEFT JOIN dbo.MonHoc ON MonHoc.MaMonHoc = KetQua.MaMonHoc
+	LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
+	WHERE TenHocVien = @TenHV
+	AND Diem < 5
+	AND LanThi = 1
+
+	RETURN @count
+END
+SELECT dbo.fnCountMonRot(N'Nguyễn Bình Minh')
+
+--3. Nhập vào một mã lớp, một tên giáo viên. Cho biết số môn mà giáo viên từng dạy cho lớp này
+ALTER FUNCTION fnCountSoMonGVDay
+(
+	@MaLop VARCHAR(10),
+	@TenGV NVARCHAR(50)
+)
+RETURNS TINYINT
+AS
+BEGIN
+	DECLARE @Count TINYINT
+	
+		SELECT @Count = COUNT(dbo.PhanCong.MaMH) FROM dbo.PhanCong
+		LEFT JOIN dbo.GiaoVien ON GiaoVien.MaGV = PhanCong.MaGV
+		WHERE dbo.PhanCong.MaLop = @MaLop AND dbo.GiaoVien.TenGV = @TenGV
+
+	RETURN CAST(@Count AS VARCHAR) 
+END
+SELECT dbo.fnCountSoMonGVDay('LH000004', N'Nguyễn Thị Linh')
+
+--4. Nhập vào một mã học viên, cho biết điểm trung bình của học viên.
+ALTER FUNCTION fnGetDTB_HocVien
+(
+	@MaHV VARCHAR(10)
+)
+RETURNS FLOAT
+AS
+BEGIN
+	DECLARE @KQ FLOAT 
+
+    SELECT @KQ = dbo.fnAvgStudent(TenHocVien) FROM dbo.KetQua
+	LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
+	WHERE MaHocVien = @MaHV
+
+	RETURN @KQ
+END
+SELECT dbo.fnGetDTB_HocVien('HV000002')
+
+--5. Nhập vào một tên môn học, cho biết danh sách các học viên (mã học viên, tên học viên,
+-- ngày sinh) đã đậu môn này. Học viên đậu khi điểm lần thi sau cùng >= 5.
+ALTER FUNCTION fnList_HocVien
+(
+	@TenMH NVARCHAR(50)
+)
+RETURNS TABLE
+RETURN 
+		SELECT dbo.HocVien.MaHocVien, TenHocVien, NgaySinh FROM dbo.HocVien 
+		LEFT JOIN dbo.KetQua ON KetQua.MaHV = HocVien.MaHocVien
+		LEFT JOIN dbo.MonHoc ON MonHoc.MaMonHoc = KetQua.MaMonHoc
+		LEFT JOIN 
+					( SELECT dbo.KetQua.MaHV, MAX(dbo.KetQua.LanThi) [Lần thi cuối] FROM dbo.KetQua
+					  LEFT JOIN dbo.MonHoc ON MonHoc.MaMonHoc = KetQua.MaMonHoc
+					  WHERE TenMonHoc = @TenMH	   
+					  GROUP BY MaHV) tb2 ON tb2.MaHV = HocVien.MaHocVien
+		WHERE tb2.[Lần thi cuối] = dbo.KetQua.LanThi
+		AND TenMonHoc = @TenMH
+		AND Diem >= 5
+
+-- SELECT * FROM dbo.fnList_HocVien(N'Hệ thống thông minh')
+
+--6. Nhập vào tên môn, cho biết danh sách các giáo viên (mã gv, họ tên, tuổi) đã từng giảng
+-- dạy môn này nhiều hơn một lần.	
+
+CREATE FUNCTION fnListGV_TungGiangNhieuHon1Lan
+(
+	@TenMH NVARCHAR(50)
+)
+RETURNS TABLE 
+RETURN 
+
+		SELECT DISTINCT(dbo.GiaoVien.TenGV), dbo.GiaoVien.TenGV, YEAR(GETDATE())-YEAR(NgaySinh) [Tuổi] /*, a.[Dạy > 1 lần]*/ FROM dbo.GiaoVien
+		LEFT JOIN dbo.PhanCong ON PhanCong.MaGV = GiaoVien.MaGV
+		LEFT JOIN dbo.MonHoc ON MonHoc.MaMonHoc = PhanCong.MaMH
+		RIGHT JOIN 
+					( SELECT dbo.PhanCong.MaGV, COUNT(dbo.PhanCong.MaMH) [Dạy > 1 lần] FROM dbo.GiaoVien
+					  LEFT JOIN dbo.PhanCong ON PhanCong.MaGV = GiaoVien.MaGV	
+					  LEFT JOIN dbo.MonHoc ON MonHoc.MaMonHoc = PhanCong.MaMH
+					  WHERE TenMonHoc = N'Cấu trúc dữ liệu'
+					  GROUP BY PhanCong.MaGV	
+					  HAVING COUNT(dbo.PhanCong.MaMH) > 1) a ON a.MaGV = GiaoVien.MaGV
+
+		WHERE TenMonHoc = N'Cấu trúc dữ liệu'
+
+	
