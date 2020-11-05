@@ -204,7 +204,7 @@ BEGIN
 END
 spGetNameTeacher
 
--- 2. Cho biết họ tên các học viên đã từng thi đậu môn “Cơ sở dữ liệu”
+-- 2. Cho biết họ tên các học viên đã từng thi đậu môn “Cơ sở dữ liệu” (chưa đúng sửa lại sau)
 CREATE PROC spGetNameStudent
 AS
 BEGIN
@@ -221,7 +221,7 @@ BEGIN
 END
 spGetNameStudent
 
--- 3. Nhập vào một mã lớp, cho biết sỉ số lớp, họ tên giáo viên quản lý lớp và họ tên lớp trưởng.
+-- 3. Nhập vào một mã lớp, cho biết sĩ số lớp, họ tên giáo viên quản lý lớp và họ tên lớp trưởng.
 -- C1
 CREATE PROC spGetInfoClass_1
 @MaLop NCHAR(10)
@@ -321,7 +321,7 @@ BEGIN
 END
 spPrintListNameTeacher
 
--- function phục vụ cho câu 7, 10, 12
+-- function phục vụ cho phần procedure câu 7, 10, 12, phần trigger câu 17, 18, phần cursor câu 4
 -- chức năng : nhập vào TÊN học viên, xuất ra đtb lần thi [sau cùng]
 CREATE FUNCTION fnAvgStudent
 (
@@ -455,14 +455,14 @@ spPrintStudentHighScoreAVG 'LH000002'
 
 -- 11. Viết stored procedure nhận vào thông tin một học viên mới và đưa học viên vào CSDL
 -- theo quy trình sau:
---  B1: Kiểm tra nếu mã học viên đã có  thông báo lỗi
---  B2: Kiểm tra nếu học viên được xếp vào lớp chưa tồn tại  thông báo lỗi
---  B3: Kiểm tra nếu học viên được xếp vào lớp có nhiều hơn 20 học viên  thông báo
+-- B1: Kiểm tra nếu mã học viên đã có -> thông báo lỗi
+-- B2: Kiểm tra nếu học viên được xếp vào lớp chưa tồn tại -> thông báo lỗi
+-- B3: Kiểm tra nếu học viên được xếp vào lớp có nhiều hơn 20 học viên -> thông báo
 -- lớp đã quá đông và không thể nhận thêm học viên
---  B4: Kiểm tra nếu tình trạng không phải là một trong ba tình trạng „đang học‟, „đã
--- tốt nghiệp‟ hoặc „bị thôi học‟  thông báo lỗi
---  B5: Thêm học viên vào
---  B6: Tăng cột sĩ số trong bảng lớp insert học viên thêm 1
+-- B4: Kiểm tra nếu tình trạng không phải là một trong ba tình trạng 'đang học', 'đã
+-- tốt nghiệp' hoặc 'bị thôi học' -> thông báo lỗi
+-- B5: Thêm học viên vào
+-- B6: Tăng cột sĩ số trong bảng lớp insert học viên thêm 1
 SELECT * FROM dbo.HocVien
 SELECT * FROM dbo.LopHoc
 spCheckNewStudentInsert 'HV000sg0019', N'Nguyễn Văn A', '1999-1-1', N'Đang họcf', 'LH0000f04'
@@ -536,10 +536,10 @@ CREATE PROC spDeleteStudentBadScoreAVG
 AS
 BEGIN
 	DECLARE @diem FLOAT
-	SET @diem = 6
+	SET @diem = 3.5
 	 
 	IF NOT EXISTS (
-				SELECT DISTINCT dbo.HocVien.TenHocVien, dbo.fnAvgStudent(dbo.HocVien.TenHocVien) AS 'DTB <= 6' FROM dbo.KetQua
+				SELECT DISTINCT dbo.HocVien.TenHocVien, dbo.fnAvgStudent(dbo.HocVien.TenHocVien) AS 'DTB <= 3.5' FROM dbo.KetQua
 				LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
 				WHERE dbo.fnAvgStudent(dbo.HocVien.TenHocVien) <= @diem
 				GROUP BY TenHocVien )
@@ -707,17 +707,18 @@ BEGIN
 END
 
 -- 8.  Lớp trưởng phải là một học viên thuộc về lớp.
-CREATE TRIGGER trClassMonitorBelongTo ON LopHoc
+ALTER TRIGGER trClassMonitorBelongTo ON LopHoc
 FOR INSERT, UPDATE 
 AS	
 BEGIN
 	IF NOT EXISTS ( SELECT *
 					FROM inserted
 					WHERE inserted.LopTruong IN ( SELECT MaHocVien
-												  FROM dbo.HocVien))
+												  FROM dbo.HocVien
+												  WHERE dbo.HocVien.MaLop = inserted.MaLop))
 												  
 				BEGIN
-					RAISERROR(N'Lớp trưởng phải là học viên', 16, 1)
+					RAISERROR(N'Lớp trưởng phải là học viên thuộc lớp', 16, 1)
 					ROLLBACK
 				END
 END
@@ -738,7 +739,7 @@ BEGIN
 		END
 END
 
--- 10
+-- 10. Mỗi giáo viên chỉ được quản lý tối đa ba giáo viên khác.
 CREATE TRIGGER trTeacherManageClass ON GiaoVien
 FOR UPDATE, INSERT
 AS 
@@ -754,11 +755,11 @@ BEGIN
 END
 
 -- 11. Học viên thuộc về một lớp chỉ được học những môn có mở ra cho lớp đó.
--- tức trong bản phân công phải có mã MH
+-- tức trong bản phân công phải có mã MH của cái lớp đó
 SELECT * FROM dbo.PhanCong
 SELECT * FROM dbo.KetQua
 
-ALTER TRIGGER trCheckSubjectStudent ON KetQua
+CREATE TRIGGER trCheckSubjectStudent ON KetQua
 FOR INSERT, UPDATE
 AS	
 BEGIN
@@ -767,7 +768,7 @@ BEGIN
 				LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = inserted.MaHV
 				LEFT JOIN dbo.LopHoc ON LopHoc.MaLop = HocVien.MaLop
 				WHERE inserted.MaMonHoc NOT IN ( SELECT dbo.PhanCong.MaMH
-												FROM dbo.PhanCong ))
+												 FROM dbo.PhanCong ))
 			BEGIN
 			    RAISERROR(N'Môn này chưa mở', 16, 1)
 				ROLLBACK
@@ -777,16 +778,16 @@ END
 -- 12. Giáo viên chỉ được dạy những môn mà họ có khả năng giảng dạy
 SELECT * FROM dbo.GiaoVien_Day_MonHoc
 SELECT * FROM dbo.PhanCong
-
+-- Dữ liệu đề bài insert vào ko đúng theo trigger
 ALTER TRIGGER trSubjectTeacherTeach ON PhanCong
 FOR UPDATE, INSERT
 AS 
 BEGIN
-	IF NOT EXISTS ( SELECT dbo.GiaoVien_Day_MonHoc.MaGV, dbo.GiaoVien_Day_MonHoc.MaMH 
-					FROM dbo.GiaoVien_Day_MonHoc
-					WHERE MaMH IN ( SELECT inserted.MaMH
-									FROM inserted
-									WHERE inserted.MaGV = dbo.GiaoVien_Day_MonHoc.MaGV))
+	IF NOT EXISTS ( SELECT MaGV, MaMH
+					FROM inserted
+					WHERE MaMH IN ( SELECT dbo.GiaoVien_Day_MonHoc.MaMH
+									FROM dbo.GiaoVien_Day_MonHoc
+									WHERE dbo.GiaoVien_Day_MonHoc.MaGV = inserted.MaGV))
 			BEGIN
 			    RAISERROR(N'Môn này GV không có khả năng dạy', 16, 1)
 				ROLLBACK
@@ -796,42 +797,468 @@ END
 -- 13. Thêm cột SoMonDaGD (số môn đã giảng dạy) vào bảng giáo viên. Quy định giá trị
 -- trong cột này phải tương ứng với số môn mà giáo viên đã được phân công giảng dạy
 
+-- Thêm cột SoMonDaGD
 ALTER TABLE GiaoVien ADD SoMonDaGD INT
 GO
 
-CREATE TRIGGER trTeacherAutoUpdateCountSubject ON GiaoVien
+-- trigger cho update insert
+CREATE TRIGGER trAutoUpdateCountGiaoVien_InsertUpdate ON PhanCong
 FOR UPDATE, INSERT
 AS 
 BEGIN
-	DECLARE @count INT 
-    SELECT @count = COUNT(dbo.GiaoVien.MaGV) 
-	FROM dbo.GiaoVien
+	-- c1 dùng bảng tạm (tối ưu hơn khi update nhưng dữ liệu chậm hơn nếu data nhiều, không đúng đề bài)
+ --   SELECT dbo.PhanCong.MaGV, COUNT(DISTINCT(dbo.PhanCong.MaMH)) AS SM INTO #TEMP2
+	--FROM dbo.PhanCong
+	--GROUP BY dbo.PhanCong.MaGV
 
+	--UPDATE dbo.GiaoVien
+	--SET dbo.GiaoVien.SoMonDaGD = #TEMP2.SM
+	--FROM #TEMP2
+	--WHERE #TEMP2.MaGV = dbo.GiaoVien.MaGV
 
+	-- c2 
+	DECLARE @SM TINYINT
+	DECLARE @MaGV NCHAR(10)
+
+	SELECT @MaGV = MaGV FROM Inserted -- thiếu dòng này trigger tuổi GV sẽ đá vào đây mặc dù không biết tại sao 
+	SELECT @SM = COUNT(DISTINCT(dbo.PhanCong.MaMH)) FROM dbo.PhanCong
+	WHERE dbo.PhanCong.MaGV = @MaGV
+
+	UPDATE dbo.GiaoVien
+	SET dbo.GiaoVien.SoMonDaGD = @SM
+	WHERE dbo.GiaoVien.MaGV = @MaGV
+END
+-- trigger cho delete
+CREATE TRIGGER trAutoUpdateCountGiaoVien_Delete ON PhanCong
+FOR DELETE
+AS 
+BEGIN
+	DECLARE @SM TINYINT
+	DECLARE @MaGV NCHAR(10)
+
+	SELECT @MaGV = MaGV FROM Deleted
+	SELECT @SM = COUNT(DISTINCT(dbo.PhanCong.MaMH)) FROM dbo.PhanCong
+	WHERE dbo.PhanCong.MaGV = @MaGV
+
+	UPDATE dbo.GiaoVien
+	SET dbo.GiaoVien.SoMonDaGD = @SM
+	WHERE dbo.GiaoVien.MaGV = @MaGV
 END
 
+-- function cập nhật số môn theo MaGV
+CREATE FUNCTION fnGetSubjectTeacherTeach
+(
+	@MaGV NCHAR(10)
+)
+RETURNS TINYINT
+AS
+BEGIN
+	DECLARE @SM TINYINT 
+	SELECT @SM = COUNT(DISTINCT(dbo.PhanCong.MaMH)) FROM dbo.PhanCong
+	WHERE dbo.PhanCong.MaGV = @MaGV
+	RETURN @SM
+END
 
+-- cập nhật tức thời số môn theo MaGV, những lần sau sẽ tự động
+UPDATE dbo.GiaoVien
+SET SoMonDaGD = dbo.fnGetSubjectTeacherTeach(GiaoVien.MaGV)
 
+-- (tối ưu hơn)cách kết hợp cả insert, update, delete trong 1 trigger
+CREATE TRIGGER trAutoUpdateCountGiaoVien ON PhanCong
+AFTER UPDATE, INSERT, DELETE
+AS 
+BEGIN
+	DECLARE @SM TINYINT
+	DECLARE @MaGV NCHAR(10)
+	DECLARE @active VARCHAR(20)
 
+	IF EXISTS (SELECT * FROM Inserted) AND EXISTS (SELECT * FROM Deleted)
+		BEGIN
+			SET @active = 'UPDATE'
+			SELECT @MaGV = MaGV FROM Inserted
+			SELECT @SM = COUNT(DISTINCT(dbo.PhanCong.MaMH)) 
+			FROM dbo.PhanCong
+			WHERE dbo.PhanCong.MaGV = @MaGV
 
+			UPDATE dbo.GiaoVien
+			SET dbo.GiaoVien.SoMonDaGD = @SM
+			WHERE dbo.GiaoVien.MaGV = @MaGV
+		END
+	IF EXISTS (SELECT * FROM Inserted) AND NOT EXISTS (SELECT * FROM Deleted)
+		BEGIN
+			SET @active = 'INSERT'
+			SELECT @MaGV = MaGV FROM Inserted
+			SELECT @SM = COUNT(DISTINCT(dbo.PhanCong.MaMH)) 
+			FROM dbo.PhanCong
+			WHERE dbo.PhanCong.MaGV = @MaGV
 
+			UPDATE dbo.GiaoVien
+			SET dbo.GiaoVien.SoMonDaGD = @SM
+			WHERE dbo.GiaoVien.MaGV = @MaGV
+		END
+	IF EXISTS (SELECT * FROM Deleted) AND NOT EXISTS (SELECT * FROM Inserted)
+		BEGIN
+			SET @active = 'DELETE'
+			SELECT @MaGV = MaGV FROM Deleted
+			SELECT @SM = COUNT(DISTINCT(dbo.PhanCong.MaMH)) 
+			FROM dbo.PhanCong
+			WHERE dbo.PhanCong.MaGV = @MaGV
 
+			UPDATE dbo.GiaoVien
+			SET dbo.GiaoVien.SoMonDaGD = @SM
+			WHERE dbo.GiaoVien.MaGV = @MaGV
+		END
+END
 
+-- 14. Cột sĩ số trong bảng lớp phải tương ứng với số học viên đếm được của lớp đó.
 
+CREATE TRIGGER trAutoUpdateCountSiSo ON HocVien
+AFTER INSERT, UPDATE, DELETE 
+AS 
+BEGIN
+	DECLARE @siso TINYINT, @MaLop NCHAR(10), @active VARCHAR(20)
 
+	IF EXISTS (SELECT * FROM Inserted) AND EXISTS (SELECT * FROM Deleted)
+		BEGIN
+			SET @active = 'UPDATE'
+			SELECT @MaLop = MaLop FROM Inserted
+			SELECT @siso = COUNT(dbo.HocVien.MaHocVien) 
+			FROM dbo.HocVien
+			WHERE dbo.HocVien.MaLop = @MaLop
 
+			UPDATE dbo.LopHoc
+			SET SiSo = @siso
+			WHERE dbo.LopHoc.MaLop = @MaLop
+		END
+	IF EXISTS (SELECT * FROM Inserted) AND NOT EXISTS (SELECT * FROM Deleted)
+		BEGIN
+			SET @active = 'INSERT'
+			SELECT @MaLop = MaLop FROM Inserted
+			SELECT @siso = COUNT(dbo.HocVien.MaHocVien) 
+			FROM dbo.HocVien
+			WHERE dbo.HocVien.MaLop = @MaLop
 
+			UPDATE dbo.LopHoc
+			SET SiSo = @siso
+			WHERE dbo.LopHoc.MaLop = @MaLop
+		END
+	IF EXISTS (SELECT * FROM Deleted) AND NOT EXISTS (SELECT * FROM Inserted)
+		BEGIN
+			SET @active = 'DELETE'
+			SELECT @MaLop = MaLop FROM Deleted
+			SELECT @siso = COUNT(dbo.HocVien.MaHocVien) 
+			FROM dbo.HocVien
+			WHERE dbo.HocVien.MaLop = @MaLop
 
+			UPDATE dbo.LopHoc
+			SET SiSo = @siso
+			WHERE dbo.LopHoc.MaLop = @MaLop
+		END
+END
 
+-- function cập nhật sĩ số theo MaLop 
+CREATE FUNCTION fnGetCountStudentByLop
+(
+	@MaLop NCHAR(10)
+)
+RETURNS TINYINT
+AS
+BEGIN
+	DECLARE @siso TINYINT
+	SELECT @siso = COUNT(dbo.HocVien.MaHocVien) 
+	FROM dbo.HocVien
+	WHERE dbo.HocVien.MaLop = @MaLop
+	RETURN @siso
+END
+-- cập nhật tức thời sĩ số theo MaLop, những lần sau sẽ tự động
+UPDATE dbo.LopHoc
+SET SiSo = dbo.fnGetCountStudentByLop(LopHoc.MaLop)
 
+-- 15. Thêm cột SoMonCoTheGD (số môn có khả năng giảng dạy) vào bảng giáo viên. Quy
+-- định giá trị trong cột này phải tương ứng với số môn mà giáo viên có khả năng giảng dạy
 
+-- Thêm cột SoMonCoTheGD vào bảng giáo viên
+ALTER TABLE dbo.GiaoVien ADD SoMonCoTheGD INT
+GO 
 
+CREATE TRIGGER trAutoUpdateCountSoMonCoTheGD ON dbo.GiaoVien_Day_MonHoc
+AFTER INSERT, UPDATE, DELETE
+AS 
+BEGIN
+	DECLARE @SoMonCoTheGD TINYINT, @MaGV NCHAR(10), @active VARCHAR(20)
+	
+	IF EXISTS(SELECT * FROM Inserted) AND EXISTS(SELECT * FROM Deleted)
+		BEGIN
+			SET @active = 'UPDATE'
+			SELECT @MaGV = MaGV FROM Inserted
+			SELECT @SoMonCoTheGD = COUNT(A.MaMH) FROM dbo.GiaoVien_Day_MonHoc A
+			WHERE A.MaGV = @MaGV
 
+			UPDATE dbo.GiaoVien
+			SET SoMonCoTheGD = @SoMonCoTheGD
+			WHERE dbo.GiaoVien.MaGV = @MaGV
+		END
+	IF EXISTS(SELECT * FROM Inserted) AND NOT EXISTS(SELECT * FROM Deleted)
+		BEGIN
+			SET @active = 'INSERT'
+			SELECT @MaGV = MaGV FROM Inserted
+			SELECT @SoMonCoTheGD = COUNT(A.MaMH) FROM dbo.GiaoVien_Day_MonHoc A
+			WHERE A.MaGV = @MaGV
 
+			UPDATE dbo.GiaoVien
+			SET SoMonCoTheGD = @SoMonCoTheGD
+			WHERE dbo.GiaoVien.MaGV = @MaGV
+		END
+	IF EXISTS(SELECT * FROM Deleted) AND NOT EXISTS(SELECT * FROM Inserted)
+		BEGIN
+			SET @active = 'DELETE'
+			SELECT @MaGV = MaGV FROM Deleted
+			SELECT @SoMonCoTheGD = COUNT(A.MaMH) FROM dbo.GiaoVien_Day_MonHoc A
+			WHERE A.MaGV = @MaGV
 
+			UPDATE dbo.GiaoVien
+			SET SoMonCoTheGD = @SoMonCoTheGD
+			WHERE dbo.GiaoVien.MaGV = @MaGV
+		END
+END
 
+-- function cập nhật SoMonCoTheGD theo MaGV
+CREATE FUNCTION fnGetCountSoMonCoTheGD
+(
+	@MaGV NCHAR(10)
+)
+RETURNS TINYINT
+AS
+BEGIN
+	DECLARE @SoMonCoTheGD TINYINT
+	SELECT @SoMonCoTheGD = COUNT(A.MaMH) FROM dbo.GiaoVien_Day_MonHoc A
+	WHERE a.MaGV = @MaGV
+	RETURN @SoMonCoTheGD
+END
 
+-- cập nhật tức thời SoMonCoTheGD theo MaGV, những lần sau sẽ tự động
+UPDATE dbo.GiaoVien
+SET SoMonCoTheGD = dbo.fnGetCountSoMonCoTheGD(GiaoVien.MaGV)
 
+-- 16. Thêm cột số tín chỉ đạt được vào bảng học viên. Quy định giá trị trong cột này phải
+-- tương ứng với số tín chỉ mà học viên đã đạt được.
+ALTER TABLE dbo.HocVien ADD SoTinChi_Dat TINYINT
+GO
+
+-- Lấy ra cột điểm mà lần thi cuối trên 5 => số chỉ thỏa theo đề bài ban đầu
+-- chưa tính cho trường hợp trường cho lấy điểm cao nhất lần 1 nếu lần 2 bé hơn
+-- vd lần 2 thi được 3, lần 1 thi được 4
+
+-- Tạo function Số Tín thỏa theo kết quả tái sử dụng trong trigger 3 lần
+ALTER FUNCTION fnSoChiThoa
+(
+	@MaHV NCHAR(10)
+)
+RETURNS TINYINT
+AS
+BEGIN
+	DECLARE @SoChiThoa TINYINT
+	SELECT @SoChiThoa = SUM(SoChi) FROM dbo.KetQua
+	LEFT JOIN dbo.MonHoc ON MonHoc.MaMonHoc = KetQua.MaMonHoc
+	LEFT JOIN 
+	(
+	SELECT dbo.KetQua.MaMonHoc, MAX(dbo.KetQua.LanThi) AS 'Lần Thi Cuối' FROM dbo.KetQua
+	WHERE dbo.KetQua.MaHV = @MaHV	
+	GROUP BY dbo.KetQua.MaMonHoc
+	) tb2 ON  tb2.MaMonHoc = KetQua.MaMonHoc
+	WHERE dbo.KetQua.MaHV = @MaHV
+	AND tb2.[Lần Thi Cuối] = dbo.KetQua.LanThi
+	AND Diem >= 5
+	RETURN @SoChiThoa
+END
+SELECT dbo.fnSoChiThoa('HV000010')
+
+CREATE TRIGGER trAutoUpdateSumSoTinThoa ON dbo.KetQua
+AFTER INSERT, UPDATE, DELETE
+AS
+BEGIN
+	DECLARE @SoChiThoa INT, @MaHV NCHAR(10), @active VARCHAR(20)
+	
+	IF EXISTS(SELECT * FROM inserted) AND EXISTS(SELECT * FROM deleted)
+		BEGIN
+			SET @active = 'UPDATE'
+			SELECT @MaHV = MaHV FROM inserted
+			SELECT @SoChiThoa = dbo.fnSoChiThoa(KetQua.MaHV)
+			FROM dbo.KetQua
+			WHERE MaHV = @MaHV
+
+			UPDATE dbo.HocVien
+			SET SoTinChi_Dat = @SoChiThoa
+			WHERE dbo.HocVien.MaHocVien = @MaHV
+		END
+	IF EXISTS(SELECT * FROM inserted) AND NOT EXISTS(SELECT * FROM deleted)
+		BEGIN
+			SET @active = 'INSERT'
+			SELECT @MaHV = MaHV FROM inserted
+			SELECT @SoChiThoa = dbo.fnSoChiThoa(KetQua.MaHV)
+			FROM dbo.KetQua
+			WHERE MaHV = @MaHV
+
+			UPDATE dbo.HocVien
+			SET SoTinChi_Dat = @SoChiThoa
+			WHERE dbo.HocVien.MaHocVien = @MaHV
+		END
+	IF EXISTS(SELECT * FROM deleted) AND NOT EXISTS(SELECT * FROM inserted)
+		BEGIN
+			SET @active = 'DELETE'
+			SELECT @MaHV = MaHV FROM deleted
+			SELECT @SoChiThoa = dbo.fnSoChiThoa(KetQua.MaHV)
+			FROM dbo.KetQua
+			WHERE MaHV = @MaHV
+
+			UPDATE dbo.HocVien
+			SET SoTinChi_Dat = @SoChiThoa
+			WHERE dbo.HocVien.MaHocVien = @MaHV
+		END
+END
+
+-- update cho lần chạy đầu tiên
+UPDATE dbo.HocVien
+SET SoTinChi_Dat = dbo.fnSoChiThoa(HocVien.MaHocVien)
+
+-- 17. Thêm cột điểm trung bình vào bảng học viên. Quy định giá trị trong cột này phải tương
+-- ứng với điểm trung bình của học viên.
+
+ALTER TABLE dbo.HocVien ADD Diem_TB FLOAT	
+GO
+
+ALTER TRIGGER trAutoUpdateDTB ON dbo.KetQua
+AFTER INSERT, UPDATE, DELETE
+AS	
+BEGIN
+	DECLARE @MaHV NCHAR(10), @DTB FLOAT, @active VARCHAR(20)
+
+	IF EXISTS(SELECT * FROM Inserted) AND EXISTS(SELECT * FROM Deleted)
+		BEGIN
+			SET @active = 'UPDATE'
+			SELECT @MaHV = Inserted.MaHV FROM Inserted
+			SELECT @DTB = dbo.fnAvgStudent(TenHocVien)
+			FROM dbo.KetQua
+			LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
+			WHERE dbo.KetQua.MaHV = @MaHV
+
+			UPDATE dbo.HocVien
+			SET Diem_TB = @DTB
+			WHERE dbo.HocVien.MaHocVien = @MaHV
+		END
+	IF EXISTS(SELECT * FROM Inserted) AND NOT EXISTS(SELECT * FROM Deleted)
+		BEGIN
+			SET @active = 'INSERT'
+			SELECT @MaHV = Inserted.MaHV FROM Inserted
+			SELECT @DTB = dbo.fnAvgStudent(TenHocVien)
+			FROM dbo.KetQua
+			LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
+			WHERE dbo.KetQua.MaHV = @MaHV
+
+			UPDATE dbo.HocVien
+			SET Diem_TB = @DTB
+			WHERE dbo.HocVien.MaHocVien = @MaHV
+		END
+	IF EXISTS(SELECT * FROM Deleted) AND NOT EXISTS(SELECT * FROM Inserted)
+		BEGIN
+			SET @active = 'DELETE'
+			SELECT @MaHV = Deleted.MaHV FROM Deleted
+			SELECT @DTB = dbo.fnAvgStudent(TenHocVien)
+			FROM dbo.KetQua
+			LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
+			WHERE dbo.KetQua.MaHV = @MaHV
+
+			UPDATE dbo.HocVien
+			SET Diem_TB = @DTB
+			WHERE dbo.HocVien.MaHocVien = @MaHV
+		END
+END
+--SELECT dbo.fnAvgStudent (N'Nguyễn Bình Minh')
+-- update cho lần chạy đầu tiên
+UPDATE dbo.HocVien
+SET Diem_TB = dbo.fnAvgStudent(dbo.HocVien.TenHocVien)
+
+--18. Thêm cột xếp loại vào bảng học viên. Quy định giá trị của cột này như sau:
+--ĐTB < 5 Loại yếu
+--ĐTB = 5 Loại TB
+--5 < ĐTB <= 6.5 Loại TB khá
+--6.5 < ĐTB < 8 Loại khá
+--8 <= ĐTB < 9 Loại giỏi
+--9 <= ĐTB <= 10 Loại xuất sắc
+
+ALTER TABLE dbo.HocVien ADD Xep_Loai NVARCHAR(20)
+GO
+
+-- function xuất ra học lực từ fnAvgStudent đã làm dựa vào MaHV
+ALTER FUNCTION fnXepLoai
+(
+	@MaHV NCHAR(10)
+)
+RETURNS NVARCHAR(20)
+AS
+BEGIN
+	DECLARE @DTB FLOAT, @XL NVARCHAR(20)
+	SELECT @DTB = dbo.fnAvgStudent(TenHocVien) FROM dbo.KetQua
+	LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
+	WHERE MaHocVien = @MaHV
+
+	SET @XL = IIF(@DTB BETWEEN 9 AND 10, N'xuất sắc',
+				IIF(@DTB < 9 AND @DTB >= 8, N'giỏi',
+				IIF(@DTB < 8 AND @DTB > 6.5, N'khá',
+				IIF(@DTB <= 6.5 AND @DTB > 5, N'TB khá',
+				IIF(@DTB = 5, N'TB', N'Yếu')))))
+	RETURN @XL			
+END
+SELECT dbo.fnXepLoai('HV000002')
+
+CREATE TRIGGER trSetHocLucByDTB ON dbo.KetQua
+AFTER INSERT, UPDATE, DELETE 
+AS
+BEGIN
+	DECLARE @MaHV NCHAR(10), @XL NVARCHAR(20), @active VARCHAR(20)
+	
+	IF EXISTS (SELECT * FROM inserted) AND EXISTS (SELECT * FROM deleted)
+		BEGIN
+			SET @active = 'UPDATE'
+			SELECT @MaHV = MaHV FROM inserted
+			SELECT @XL = dbo.fnXepLoai(dbo.KetQua.MaHV) from dbo.KetQua
+			LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
+			WHERE dbo.KetQua.MaHV = @MaHV
+
+			UPDATE dbo.HocVien
+			SET Xep_Loai = @XL
+			WHERE MaHocVien = @MaHV
+		END	
+	IF EXISTS (SELECT * FROM inserted) AND NOT EXISTS (SELECT * FROM deleted)
+		BEGIN
+			SET @active = 'INSERT'
+			SELECT @MaHV = MaHV FROM inserted
+			SELECT @XL = dbo.fnXepLoai(dbo.KetQua.MaHV) from dbo.KetQua
+			LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
+			WHERE dbo.KetQua.MaHV = @MaHV
+
+			UPDATE dbo.HocVien
+			SET Xep_Loai = @XL
+			WHERE MaHocVien = @MaHV
+		END	
+	IF EXISTS (SELECT * FROM deleted) AND NOT EXISTS (SELECT * FROM inserted)
+		BEGIN
+			SET @active = 'INSERT'
+			SELECT @MaHV = MaHV FROM deleted
+			SELECT @XL = dbo.fnXepLoai(dbo.KetQua.MaHV) from dbo.KetQua
+			LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
+			WHERE dbo.KetQua.MaHV = @MaHV
+
+			UPDATE dbo.HocVien
+			SET Xep_Loai = @XL
+			WHERE MaHocVien = @MaHV
+		END	
+END
+-- update cho lần chạy đầu tiên
+UPDATE dbo.HocVien
+SET Xep_Loai = dbo.fnXepLoai(dbo.HocVien.MaHocVien)
+
+/*
 -- test trigger  với 2 bảng inserted & deleted
 -- insert into select : chèn dữ liệu vào 1 bảng có sẵn
 -- select into : tạo bảng sao từ bảng nào đó
@@ -849,7 +1276,274 @@ AFTER DELETE AS
 
 	END
 
-
 SELECT * INTO test
 FROM dbo.MonHoc
 WHERE 1 > 2
+*/
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- G. ÔN TẬP TRIGGER
+-- 1, 2, 3, 4, 7 trigger giống phần F
+
+ALTER TABLE dbo.HocVien
+ADD CONSTRAINT CheckTinhTrang CHECK (TinhTrang IN (N'Đang học', N'Buộc thôi học', N'Đã tốt nghiệp'))
+
+--5. Một giáo viên không được tự quản lý họ.
+ALTER TRIGGER trCheckTrungGV ON GiaoVien
+FOR INSERT, UPDATE
+AS 
+BEGIN
+	DECLARE @MaGVQuanLi NCHAR(10)
+	SELECT @MaGVQuanLi = MaGVQuanLi FROM inserted
+
+	IF EXISTS ( SELECT *
+				FROM inserted LEFT JOIN dbo.GiaoVien ON dbo.GiaoVien.MaGV = inserted.MaGV
+				WHERE @MaGVQuanLi = dbo.GiaoVien.MaGV)
+			BEGIN
+				RAISERROR('GV không thể tự quản lí mình', 16, 1)
+				ROLLBACK
+			END						
+END
+
+--6. Tất cả mã giáo viên đều bắt đầu bằng GV.
+ALTER TRIGGER trCheckMaGV ON GiaoVien
+FOR INSERT, UPDATE 
+AS 
+BEGIN
+	DECLARE @MaGV NCHAR(10)
+	SELECT @MaGV = MaGV FROM inserted
+	IF EXISTS ( SELECT * FROM inserted
+					LEFT JOIN dbo.GiaoVien ON dbo.GiaoVien.MaGV = inserted.MaGV
+					WHERE @MaGV NOT LIKE 'GV%')
+			BEGIN
+				RAISERROR('Mã GV phải bắt đầu bằng [GV]', 16, 1)
+				ROLLBACK
+			END
+END
+
+--7.(tự nghĩ ra) Nếu sv thi lần 1 đậu rồi thi không được thi tiếp lần 2
+ALTER TRIGGER trCheckLanThiHopLi ON KetQua
+FOR INSERT, UPDATE
+AS 
+BEGIN
+	DECLARE @1 FLOAT, @2 FLOAT
+	DECLARE @MaHV VARCHAR(10), @MaMH VARCHAR(10)
+	SELECT @MaHV = (SELECT MaHV FROM inserted)
+	SELECT @MaMH = (SELECT MaMonHoc FROM inserted)
+
+	SELECT @1 = (SELECT dbo.KetQua.Diem
+				 FROM dbo.KetQua
+				 WHERE LanThi = 1
+				 AND Diem >= 5
+				 AND dbo.KetQua.MaHV = @MaHV AND dbo.KetQua.MaMonHoc = @MaMH)
+
+	SELECT @2 = (SELECT dbo.KetQua.Diem 
+				 FROM dbo.KetQua
+				 WHERE LanThi = 2
+				  AND dbo.KetQua.MaHV = @MaHV AND dbo.KetQua.MaMonHoc = @MaMH)
+	IF(@2 <= @1 OR @2 > 1)
+		BEGIN
+			RAISERROR('SV đã thi đậu', 16, 1)
+			ROLLBACK
+		END
+
+END
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- D. BÀI TẬP CURSOR
+--1. Làm lại câu 6 ở phần A nhưng dùng lệnh print để xuất kết quả ra màn hình.
+/*
+--procedure từ câu 6
+CREATE PROC spPrintListNameTeacher
+AS
+BEGIN
+
+	SELECT dbo.GiaoVien.TenGV , COUNT(dbo.GiaoVien_Day_MonHoc.MaMH) AS [Số môn dạy] 
+	FROM dbo.GiaoVien
+	LEFT JOIN dbo.GiaoVien_Day_MonHoc ON GiaoVien_Day_MonHoc.MaGV = GiaoVien.MaGV
+	GROUP BY TenGV
+
+END
+spPrintListNameTeacher
+*/
+-- Tái sử dung procedure spPrintListNameTeacher vào function nhưng sql không cho
+-- Tạo function trả ra bảng
+ALTER FUNCTION fnForCurCau1
+(
+)
+RETURNS TABLE 
+RETURN 
+	SELECT dbo.GiaoVien.TenGV , COUNT(dbo.GiaoVien_Day_MonHoc.MaMH) AS [Số môn dạy] 
+	FROM dbo.GiaoVien
+	LEFT JOIN dbo.GiaoVien_Day_MonHoc ON GiaoVien_Day_MonHoc.MaGV = GiaoVien.MaGV
+	GROUP BY TenGV
+--SELECT * FROM dbo.fnForCurCau1()
+ALTER PROC spCurCau1
+AS
+BEGIN
+	
+
+DECLARE cur CURSOR FOR SELECT * FROM dbo.fnForCurCau1()
+OPEN cur
+
+DECLARE @TenGV NVARCHAR(30), @SoMonDay TINYINT
+FETCH NEXT FROM cur INTO @TenGV, @SoMonDay
+WHILE @@FETCH_STATUS = 0
+	BEGIN
+		PRINT N'Tên GV     : ' + @TenGV +CHAR(10)+ N'Số môn dạy : '+CAST(@SoMonDay AS VARCHAR)
+		PRINT '-------------------------------'
+		FETCH NEXT FROM cur INTO @TenGV, @SoMonDay
+	END
+CLOSE cur
+DEALLOCATE cur
+
+END 
+--2. Nhập vào một mã giáo viên, xuất ra tên giáo viên, danh sách tên các môn giáo viên
+-- giảng dạy cùng số lần dạy
+ALTER PROC spCurCau2
+( 
+	@MaGV VARCHAR(10)
+)
+AS
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM dbo.PhanCong WHERE MaGV = @MaGV)
+		BEGIN
+			PRINT N'GV này chưa dạy môn nào'
+			RETURN 
+		END
+	ELSE 
+		BEGIN
+			
+		
+			DECLARE cur CURSOR FOR
+									SELECT dbo.GiaoVien.TenGV, dbo.MonHoc.TenMonHoc, COUNT(dbo.PhanCong.MaMH) AS 'Số lần dạy' FROM dbo.GiaoVien
+									LEFT JOIN dbo.PhanCong ON PhanCong.MaGV = GiaoVien.MaGV
+									LEFT JOIN dbo.MonHoc ON MonHoc.MaMonHoc = PhanCong.MaMH
+									WHERE dbo.GiaoVien.MaGV = @MaGV
+									GROUP BY dbo.GiaoVien.TenGV, TenMonHoc 
+									--ORDER BY TenGV
+			OPEN cur
+
+			DECLARE @TenGV NVARCHAR(30), @TenMonDay NVARCHAR(50), @Count_LanDay VARCHAR(5), @i VARCHAR(5) = 0
+			FETCH NEXT FROM cur INTO @TenGV, @TenMonDay, @Count_LanDay
+			
+				PRINT N'**Tên giáo viên : '+@TenGV+CHAR(10)
+				+ N'**Danh sách các môn được phân công giảng dạy'
+				WHILE @@FETCH_STATUS = 0
+					
+					BEGIN
+						SET @i += 1
+						PRINT  '******'+@i+'. '+@TenMonDay+ ' : '+@Count_LanDay+ N' lần'
+						FETCH NEXT FROM cur INTO @TenGV, @TenMonDay, @Count_LanDay
+					END
+
+			CLOSE cur
+			DEALLOCATE cur
+		END
+END
+spCurCau2 'GV00006'
+
+--3. Nhập vào một mã môn, xuất ra thông tin môn (tên môn, số tín chỉ) cùng danh sách các
+-- học viên đã từng thi đậu môn này
+ALTER PROC spCurCau3
+(
+	@MaMH VARCHAR(10)
+)
+AS
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM dbo.KetQua WHERE dbo.KetQua.MaMonHoc = @MaMH)
+		BEGIN
+			PRINT N'Chưa có dữ liệu môn này'
+			RETURN 
+		END
+	ELSE	
+		BEGIN
+			DECLARE cur CURSOR FOR 
+						SELECT dbo.MonHoc.TenMonHoc, SoChi, TenHocVien FROM dbo.MonHoc
+						LEFT JOIN dbo.KetQua ON KetQua.MaMonHoc = MonHoc.MaMonHoc
+						LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
+						WHERE dbo.MonHoc.MaMonHoc = @MaMH
+						AND Diem >= 5
+			OPEN cur
+				DECLARE @TenMH NVARCHAR(50), @SoChi VARCHAR(5), @TenHV NVARCHAR(50), @i VARCHAR(5) = 0
+				FETCH NEXT FROM cur INTO @TenMH, @SoChi, @TenHV
+
+				PRINT N'**Môn : ' +@TenMH+CHAR(10)+ N'**Số chỉ : '+@SoChi + N' tín chỉ'+CHAR(10)
+				+N'**Danh sách học viên thi đậu'
+				WHILE @@FETCH_STATUS = 0
+					BEGIN
+						SET @i += 1
+						PRINT '******'+@i + '. '+@TenHV
+						FETCH NEXT FROM cur INTO @TenHV, @SoChi, @TenHV
+					END 
+			CLOSE cur
+			DEALLOCATE cur
+		END
+END
+spCurCau3 'MH00004'
+
+--4. Nhập vào mã lớp, xuất ra thông tin lớp (mã lớp, tên lớp trưởng) cùng danh sách các học
+-- viên của lớp (họ tên học viên và điểm trung bình)
+
+-- function lấy ra tên lớp trưởng từ MaLop
+ALTER FUNCTION fnLopTruongOfLop
+(
+	@MaLop NCHAR(10)
+)
+RETURNS NVARCHAR(30)
+AS
+BEGIN
+	DECLARE @TenLT NVARCHAR(30)
+	SELECT @TenLT = dbo.HocVien.TenHocVien FROM dbo.HocVien
+	LEFT JOIN dbo.LopHoc ON LopHoc.LopTruong = dbo.HocVien.MaHocVien
+	WHERE dbo.LopHoc.MaLop = @MaLop
+
+	RETURN @TenLT
+END
+SELECT dbo.fnLopTruongOfLop('LH000004')
+
+SELECT DISTINCT(dbo.HocVien.TenHocVien), dbo.fnAvgStudent(dbo.HocVien.TenHocVien), dbo.HocVien.MaLop, dbo.fnLopTruongOfLop(LopHoc.MaLop) FROM dbo.HocVien
+LEFT JOIN dbo.LopHoc ON LopHoc.MaLop = HocVien.MaLop
+LEFT JOIN dbo.KetQua ON KetQua.MaHV = HocVien.MaHocVien
+WHERE HocVien.MaLop = 'LH000004'
+
+--5. Nhập vào mã học viên xuất ra bảng điểm
+
+-- function lấy ra điểm của môn (lần thi sau cùng) từ MaHV
+
+--
+SELECT dbo.HocVien.TenHocVien, dbo.HocVien.MaLop, dbo.MonHoc.TenMonHoc, SoChi,  FROM dbo.HocVien
+LEFT JOIN dbo.KetQua ON KetQua.MaHV = HocVien.MaHocVien
+LEFT JOIN dbo.MonHoc ON MonHoc.MaMonHoc = KetQua.MaMonHoc
+WHERE MaHocVien = 'HV000001'
+
+
+
+
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- E. BÀI TẬP FUNCTION
+--1. Nhập vào tên một học viên cho biết tuổi của học viên này
+CREATE FUNCTION fnTuoiHV
+(
+	@TenHV NVARCHAR(30)
+)
+RETURNS TINYINT
+AS
+BEGIN
+	DECLARE @Tuoi TINYINT
+		SELECT @Tuoi = YEAR(GETDATE()) - YEAR(dbo.HocVien.NgaySinh) FROM dbo.HocVien
+		WHERE TenHocVien = @TenHV
+		RETURN @Tuoi
+END
+SELECT dbo.fnTuoiHV(N'Nguyễn Thùy Linh')
+
+--2. Nhập vào tên một học viên cho biết số môn học viên này đã từng thi rớt
+SELECT COUNT(dbo.KetQua.MaMonHoc) FROM dbo.KetQua
+LEFT JOIN dbo.HocVien ON KetQua.MaHV = HocVien.MaHocVien
+LEFT JOIN 
+		   (SELECT dbo.KetQua.MaMonHoc, MAX(dbo.KetQua.LanThi) AS LanThiCuoi FROM dbo.KetQua
+		    LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
+			WHERE  TenHocVien = N'Trần Trung Chính'
+			GROUP BY MaMonHoc) tb2 ON tb2.MaMonHoc = KetQua.MaMonHoc
+WHERE dbo.HocVien.TenHocVien = N'Trần Trung Chính'
+AND dbo.KetQua.LanThi = tb2.LanThiCuoi
+AND Diem < 5
