@@ -308,14 +308,15 @@ spCountSubjectPass N'Nguyễn Thùy Linh'
 
 -- 6. Xuất ra danh sách họ tên các giáo viên, ứng với mỗi giáo viên cho biết có số môn mà
 -- các giáo viên này đã được phân công giảng dạy.
-CREATE PROC spPrintListNameTeacher
+ALTER PROC spPrintListNameTeacher
 AS
 BEGIN
 
-	SELECT dbo.GiaoVien.TenGV , COUNT(dbo.GiaoVien_Day_MonHoc.MaMH) AS [Số môn dạy] 
-	FROM dbo.GiaoVien
-	LEFT JOIN dbo.GiaoVien_Day_MonHoc ON GiaoVien_Day_MonHoc.MaGV = GiaoVien.MaGV
+	SELECT dbo.GiaoVien.TenGV , COUNT(dbo.PhanCong.MaMH) AS [Số môn dạy] 
+	FROM dbo.PhanCong
+	LEFT JOIN dbo.GiaoVien ON GiaoVien.MaGV = PhanCong.MaGV
 	GROUP BY TenGV
+	SELECT * FROM dbo.PhanCong
 
 END
 spPrintListNameTeacher
@@ -1313,7 +1314,7 @@ BEGIN
 		END	
 	IF EXISTS (SELECT * FROM deleted) AND NOT EXISTS (SELECT * FROM inserted)
 		BEGIN
-			SET @active = 'INSERT'
+			SET @active = 'DELETE'
 			SELECT @MaHV = MaHV FROM deleted
 			SELECT @XL = dbo.fnXepLoai(dbo.KetQua.MaHV) from dbo.KetQua
 			LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
