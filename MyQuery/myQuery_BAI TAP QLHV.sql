@@ -296,7 +296,7 @@ BEGIN
 	SELECT @count = COUNT(kq.MaMonHoc) FROM dbo.KetQua kq
 	LEFT JOIN dbo.HocVien hv ON hv.MaHocVien = kq.MaHV
 	WHERE hv.TenHocVien = @TenHocVien
-	AND kq.Diem >= 5
+	AND kq.Diem >= 5 
 	AND kq.LanThi IN (  SELECT MAX(kq.LanThi) FROM dbo.KetQua kq
 						LEFT JOIN dbo.HocVien hv ON hv.MaHocVien = kq.MaHV
 						WHERE hv.TenHocVien = @TenHocVien
@@ -316,8 +316,6 @@ BEGIN
 	FROM dbo.PhanCong
 	LEFT JOIN dbo.GiaoVien ON GiaoVien.MaGV = PhanCong.MaGV
 	GROUP BY TenGV
-	SELECT * FROM dbo.PhanCong
-
 END
 spPrintListNameTeacher
 
@@ -353,7 +351,7 @@ SELECT dbo.fnAvgStudent (N'Nguyễn Thùy Linh')
 -- 7. Nhận vào tên một học viên, cho biết điểm trung bình của học viên đó. Điểm trung bình
 -- được tính trên điểm thi lần thi sau cùng của học viên theo công thức:
 -- Điểm trung bình = ∑(Điểm * Số tín chỉ) / ∑Số tín chỉ
-CREATE PROC spAvgStudent
+ALTER PROC spAvgStudent
 @TenHV NVARCHAR(50)
 AS
 BEGIN
