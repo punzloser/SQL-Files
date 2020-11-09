@@ -1619,7 +1619,7 @@ BEGIN
 END
 spCurCau4 'LH000004'
 
---5. Nhập vào mã học viên xuất ra bảng điểm theo đinh dạng
+--5. Nhập vào mã học viên xuất ra bảng điểm theo đinh dạng.
 																																																																					/*
 **Họ tên : Lê Thanh Tùng
 **Lớp : LH000001
