@@ -214,7 +214,7 @@ BEGIN
 	LEFT JOIN dbo.KetQua ON KetQua.MaHV = HocVien.MaHocVien
 	LEFT JOIN dbo.MonHoc ON MonHoc.MaMonHoc = KetQua.MaMonHoc
 	WHERE TenMonHoc = N'Cơ sở dữ liệu'
-	AND Diem >= 5
+	AND Diem >= 5 AND LanThi != 2
 
 	PRINT N'Họ tên học viên [đã từng] thi đậu CSDL : '+ CHAR(10) + @kq
 END
@@ -279,7 +279,7 @@ BEGIN
 
 END
 
-DECLARE @MaLop NCHAR(10) = 'LH000001', @ketqua NVARCHAR(20)
+DECLARE @MaLop NCHAR(10) = 'LH000002', @ketqua NVARCHAR(20)
 EXEC spPrintNameTeacher_Out @MaLop, @ketqua OUT 
 PRINT N'Họ tên GV quản lí lớp : '+ CAST(@MaLop AS VARCHAR) + '-> ' + CAST(@ketqua AS NVARCHAR)
 
@@ -293,22 +293,22 @@ BEGIN
 	--DECLARE @TenHocVien NVARCHAR(50) = N'Nguyễn Thùy Linh'
 	DECLARE @count TINYINT
 
-	SELECT @count = COUNT(kq.MaMonHoc) FROM dbo.KetQua kq
-	LEFT JOIN dbo.HocVien hv ON hv.MaHocVien = kq.MaHV
-	WHERE hv.TenHocVien = @TenHocVien
-	AND kq.Diem >= 5 
-	AND kq.LanThi IN (  SELECT MAX(kq.LanThi) FROM dbo.KetQua kq
-						LEFT JOIN dbo.HocVien hv ON hv.MaHocVien = kq.MaHV
-						WHERE hv.TenHocVien = @TenHocVien
-						)
-	PRINT N'Có ' + CAST(@count AS VARCHAR) + N' môn SV : ' + CAST(@TenHocVien AS NVARCHAR) + N' đậu'
+	SELECT @count = COUNT(dbo.KetQua.MaMonHoc) FROM dbo.KetQua
+	LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
+	RIGHT JOIN 
+			(SELECT dbo.KetQua.MaHV, dbo.KetQua.MaMonHoc, MAX(dbo.KetQua.LanThi) AS LanThiCuoi FROM dbo.KetQua
+			 GROUP BY MaHV, MaMonHoc) tb2 ON tb2.MaMonHoc = KetQua.MaMonHoc AND tb2.MaHV = KetQua.MaHV
+	WHERE tb2.LanThiCuoi = dbo.KetQua.LanThi
+	AND TenHocVien = @TenHocVien AND Diem >= 5
+
+	PRINT N'Có ' + CAST(@count AS VARCHAR) + N' môn SV : ' + CAST(@TenHocVien AS NVARCHAR) + N' đã thi đậu'
 	
 END
-spCountSubjectPass N'Nguyễn Thùy Linh'
+spCountSubjectPass N'Trần Trung Chính'
 
 -- 6. Xuất ra danh sách họ tên các giáo viên, ứng với mỗi giáo viên cho biết có số môn mà
 -- các giáo viên này đã được phân công giảng dạy.
-ALTER PROC spPrintListNameTeacher
+CREATE PROC spPrintListNameTeacher
 AS
 BEGIN
 
@@ -351,7 +351,7 @@ SELECT dbo.fnAvgStudent (N'Nguyễn Thùy Linh')
 -- 7. Nhận vào tên một học viên, cho biết điểm trung bình của học viên đó. Điểm trung bình
 -- được tính trên điểm thi lần thi sau cùng của học viên theo công thức:
 -- Điểm trung bình = ∑(Điểm * Số tín chỉ) / ∑Số tín chỉ
-ALTER PROC spAvgStudent
+CREATE PROC spAvgStudent
 @TenHV NVARCHAR(50)
 AS
 BEGIN
@@ -360,7 +360,7 @@ BEGIN
 	LEFT JOIN dbo.KetQua ON KetQua.MaHV = HocVien.MaHocVien
 	WHERE TenHocVien = @TenHV
 
-	PRINT N'Điểm trung bình HV '+CAST(@TenHV AS NVARCHAR) + ' = ' + CAST(ROUND(@DTB_LanThiSauCung,1) AS VARCHAR)
+	PRINT N'Điểm trung bình HV '+CAST(@TenHV AS NVARCHAR) + ' = ' + CAST(ROUND(@DTB_LanThiSauCung, 2) AS VARCHAR)
 
 END
 spAvgStudent N'Nguyễn Thùy Linh'
@@ -381,66 +381,27 @@ BEGIN
 	WHERE TenMonHoc = @TenMonHoc
 	AND Diem >= 5
 	AND LanThi != 2
-	--SELECT * FROM dbo.HocVien
-	--SELECT * FROM dbo.KetQua
-	--SELECT * FROM dbo.MonHoc
 END
 DECLARE @TenMonHoc NVARCHAR(50) = N'Hệ thống thông minh', @KetQua TINYINT 
 EXEC spCountStudentPassSubject_Out @TenMonHoc, @KetQua OUT 
 PRINT  N' có ' + CAST(@KetQua AS VARCHAR) + N' sinh viên [đã từng] thi đậu môn ' + CAST(@TenMonHoc AS NVARCHAR)
 	
-
 -- 9. Xuất ra danh sách tên các môn học, ứng với mỗi môn cho biết số học viên vẫn chưa thi
 -- đậu môn đó. Học viên chưa thi đậu khi điểm lần thi cuối cùng môn đó < 5.
--- vì group by lồng các kiểu nhưng chỉ lấy ra KQ sau cùng, nếu sót SV nào đó mà chỉ thi lần 1 => rớt không thi lại thì cách 1,2 sai vd HV000010  	MH00008
--- khắc phục bằng function
-CREATE FUNCTION fnCountThiRotDayDu
-(
-	@MaHV VARCHAR(10),
-	@MaMH VARCHAR(10)
-)
-RETURNS TINYINT
-AS
-BEGIN
-	DECLARE @kq TINYINT
-	SELECT @kq= COUNT(dbo.KetQua.MaHV) FROM dbo.KetQua
-	WHERE  KetQua.MaHV = @MaHV AND MaMonHoc = @MaMH  --'HV000010' 'MH00008'
-	AND Diem < 5
-	RETURN @kq
-END
-SELECT dbo.fnCountThiRotDayDu('HV000010', 'MH00008')
-
 
 CREATE PROC spPrintListDetailSubject
 AS
 BEGIN
-	----c1 by Thầy
-	--SELECT dbo.MonHoc.TenMonHoc AS [Tên MH], SUM(IIF( dbo.KetQua.LanThi = 2, 1, 0)) AS [Số SV vẫn chưa thi đậu] FROM dbo.MonHoc
-	--LEFT JOIN dbo.KetQua ON KetQua.MaMonHoc = MonHoc.MaMonHoc
-	--LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
-	--WHERE dbo.KetQua.Diem < 5
-	--GROUP BY TenMonHoc 
 
-	----c2 ý tưởng ban đầu tìm ra lần thi cuối cùng sau đó left join theo vùng dữ liệu để ra yêu cầu => sót sv thi lần 1 mà ko thi lại
-	--SELECT DISTINCT dbo.MonHoc.TenMonHoc AS [Tên MH], COUNT(dbo.KetQua.MaHV) [Số SV vẫn chưa thi đậu] FROM dbo.KetQua
-	--LEFT JOIN dbo.MonHoc ON MonHoc.MaMonHoc = KetQua.MaMonHoc
-	--LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
-	--LEFT JOIN 
-	--			(SELECT dbo.KetQua.MaHV,  MAX(LanThi) AS LanThiCuoi FROM dbo.KetQua
-	--			 GROUP BY MaHV) tb2 ON tb2.MaHV = KetQua.MaHV
-	--WHERE dbo.KetQua.Diem < 5
-	--AND dbo.KetQua.LanThi = tb2.LanThiCuoi
-	--GROUP BY TenMonHoc
-
-	--c3
-	SELECT DISTINCT dbo.MonHoc.TenMonHoc AS [Tên MH], dbo.fnCountThiRotDayDu(KetQua.MaHV, dbo.KetQua.MaMonHoc) [Số SV vẫn chưa thi đậu] FROM dbo.KetQua
-	LEFT JOIN dbo.MonHoc ON MonHoc.MaMonHoc = KetQua.MaMonHoc
-	LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
-	LEFT JOIN 
-				(SELECT dbo.KetQua.MaHV,  MAX(LanThi) AS LanThiCuoi FROM dbo.KetQua
-				 GROUP BY MaHV) tb2 ON tb2.MaHV = KetQua.MaHV
-	WHERE dbo.KetQua.Diem < 5
-	AND dbo.KetQua.LanThi = tb2.LanThiCuoi
+	-- đã fix
+	SELECT dbo.MonHoc.TenMonHoc, COUNT(dbo.KetQua.MaHV) [Số SV vẫn chưa thi đậu] FROM dbo.KetQua
+	LEFT JOIN dbo.MonHoc ON MonHoc.MaMonHoc = KetQua.MaMonHoc 
+	RIGHT JOIN 
+				(SELECT dbo.KetQua.MaHV, dbo.KetQua.MaMonHoc, MAX(LanThi) AS LanThiCuoi FROM dbo.KetQua
+				 GROUP BY MaHV, MaMonHoc) tb2 ON tb2.MaHV = KetQua.MaHV AND tb2.MaMonHoc = KetQua.MaMonHoc
+	WHERE tb2.LanThiCuoi = dbo.KetQua.LanThi AND Diem < 5
+	GROUP BY TenMonHoc
+	
 END
 EXEC spPrintListDetailSubject
 
@@ -1541,13 +1502,13 @@ BEGIN
 						LEFT JOIN dbo.KetQua ON KetQua.MaMonHoc = MonHoc.MaMonHoc
 						LEFT JOIN dbo.HocVien ON HocVien.MaHocVien = KetQua.MaHV
 						WHERE dbo.MonHoc.MaMonHoc = @MaMH
-						AND Diem >= 5
+						AND Diem >= 5 AND LanThi !=2
 			OPEN cur
 				DECLARE @TenMH NVARCHAR(50), @SoChi VARCHAR(5), @TenHV NVARCHAR(50), @i VARCHAR(5) = 0
 				FETCH NEXT FROM cur INTO @TenMH, @SoChi, @TenHV
 
 				PRINT N'**Môn : ' +@TenMH+CHAR(10)+ N'**Số chỉ : '+@SoChi + N' tín chỉ'+CHAR(10)
-				+N'**Danh sách học viên thi đậu'
+				+N'**Danh sách học viên đã từng thi đậu'
 				WHILE @@FETCH_STATUS = 0
 					BEGIN
 						SET @i += 1
@@ -1872,7 +1833,7 @@ END
 SELECT dbo.fnPrintGVTuoiLonNhat('LH000004')
 
 --10. Nhập vào một tên môn học. Trong số các học viên từng thi rớt môn này, cho biết họ tên học viên nhỏ tuổi nhất.
-CREATE FUNCTION fnHocVienTungRotMH
+CREATE FUNCTION fnHocVienTungRotMH_NhoTuoiNhat
 (
 	@TenMH NVARCHAR(50)
 )
