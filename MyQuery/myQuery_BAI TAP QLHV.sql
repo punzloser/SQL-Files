@@ -346,7 +346,7 @@ BEGIN
 
 	RETURN ROUND(@DTB_LanThiSauCung,2)
 END
-SELECT dbo.fnAvgStudent (N'Nguyễn Thùy Linh')
+SELECT dbo.fnAvgStudent (N'Nguyễn Bình Minh')
 
 -- 7. Nhận vào tên một học viên, cho biết điểm trung bình của học viên đó. Điểm trung bình
 -- được tính trên điểm thi lần thi sau cùng của học viên theo công thức:
@@ -401,7 +401,14 @@ BEGIN
 				 GROUP BY MaHV, MaMonHoc) tb2 ON tb2.MaHV = KetQua.MaHV AND tb2.MaMonHoc = KetQua.MaMonHoc
 	WHERE tb2.LanThiCuoi = dbo.KetQua.LanThi AND Diem < 5
 	GROUP BY TenMonHoc
-	
+	/* c2
+	SELECT dbo.MonHoc.TenMonHoc, COUNT(a.MaHV) [Số SV vẫn chưa thi đậu] FROM dbo.KetQua a
+	LEFT JOIN dbo.MonHoc ON MonHoc.MaMonHoc = a.MaMonHoc
+	WHERE Diem < 5 AND LanThi = (SELECT MAX(LanThi)
+								 FROM dbo.KetQua b
+								 WHERE b.MaHV = a.MaHV AND a.MaMonHoc = b.MaMonHoc)
+	GROUP BY TenMonHoc
+	*/
 END
 EXEC spPrintListDetailSubject
 
@@ -1746,7 +1753,7 @@ RETURN
 
 --6. Nhập vào tên môn, cho biết danh sách các giáo viên (mã gv, họ tên, tuổi) đã từng giảng dạy môn này nhiều hơn một lần.	
 
-CREATE FUNCTION fnListGV_TungGiangNhieuHon1Lan
+ALTER FUNCTION fnListGV_TungGiangNhieuHon1Lan
 (
 	@TenMH NVARCHAR(50)
 )
