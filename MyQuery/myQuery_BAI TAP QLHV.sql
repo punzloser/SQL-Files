@@ -1864,3 +1864,9 @@ BEGIN
 	RETURN @KQ
 END
 SELECT dbo.fnHocVienTungRotMH(N'Khai thác dữ liệu')
+
+
+SELECT  dbo.KetQua.* FROM dbo.KetQua LEFT JOIN dbo.MonHoc ON MonHoc.MaMonHoc = KetQua.MaMonHoc
+LEFT JOIN dbo.PhanCong ON PhanCong.MaMH = MonHoc.MaMonHoc
+LEFT JOIN dbo.GiaoVien ON GiaoVien.MaGV = PhanCong.MaGV
+WHERE dbo.GiaoVien.MaGV = 'GV00001'
